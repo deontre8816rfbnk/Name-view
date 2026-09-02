@@ -1,0 +1,7 @@
+{
+  "name": "Main Database",
+  "description": "Native Android app linked to a Markdown database file with dynamic columns, card views, and tag navigation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
