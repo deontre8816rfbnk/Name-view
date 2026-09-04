@@ -104,7 +104,7 @@ fun MainDatabaseScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top
+            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -128,18 +128,25 @@ fun MainDatabaseScreen(
                 )
             }
 
-            // Search
+            // Search field
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchChange,
                 placeholder = {
-                    Text("Search names, tags...", fontFamily = LexendFontFamily, fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f))
+                    Text(
+                        "Search names, tags...",
+                        fontFamily = LexendFontFamily,
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.4f)
+                    )
                 },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.6f)) },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+                },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchChange("") }) {
-                            Icon(Icons.Default.Clear, null, tint = Color.White.copy(alpha = 0.6f))
+                            Icon(Icons.Default.Clear, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
                         }
                     }
                 },
@@ -162,21 +169,39 @@ fun MainDatabaseScreen(
                     .focusRequester(focusRequester)
             )
 
-            Spacer(Modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Content
             when {
                 uiState.isLoading -> {
-                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = AccentTeal)
                     }
                 }
                 filteredList.isEmpty() -> {
-                    Box(Modifier.fillMaxWidth().weight(1f).padding(24.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Storage, null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-                            Spacer(Modifier.height(12.dp))
+                            Icon(
+                                Icons.Default.Storage,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all") "No matching names" else "No names yet",
+                                text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
+                                    "No matching names" else "No names yet",
                                 fontFamily = LexendFontFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp,
@@ -188,14 +213,15 @@ fun MainDatabaseScreen(
                 else -> {
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 160.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Stable key is critical for large lists
                         items(
                             items = filteredList,
-                            key = { entry -> entry.name + "|" + entry.id }
+                            key = { it.name + "|" + it.id }
                         ) { entry ->
                             DatabaseCard(
                                 entry = entry,
@@ -208,13 +234,14 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Bottom
+        // Bottom area
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
+            // FABs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -231,10 +258,10 @@ fun MainDatabaseScreen(
                     elevation = FloatingActionButtonDefaults.elevation(4.dp),
                     modifier = Modifier.size(52.dp)
                 ) {
-                    Icon(Icons.Default.Search, null, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(24.dp))
                 }
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 FloatingActionButton(
                     onClick = { isAddingNew = true },
@@ -243,13 +270,15 @@ fun MainDatabaseScreen(
                     elevation = FloatingActionButtonDefaults.elevation(6.dp),
                     modifier = Modifier.size(56.dp)
                 ) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(28.dp))
                 }
             }
 
-            // Tags under FABs
+            // Tags under the FABs
             LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 reverseLayout = true
@@ -259,7 +288,9 @@ fun MainDatabaseScreen(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSortActive) AccentTeal else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onToggleSort() }
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onToggleSort() }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -267,17 +298,17 @@ fun MainDatabaseScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                when (uiState.sortOrder) {
+                                imageVector = when (uiState.sortOrder) {
                                     SortOrder.ORIGINAL -> Icons.Default.SortByAlpha
                                     SortOrder.A_TO_Z -> Icons.Default.ArrowUpward
                                     SortOrder.Z_TO_A -> Icons.Default.ArrowDownward
                                 },
-                                null,
+                                contentDescription = null,
                                 tint = if (isSortActive) Color.White else Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(15.dp)
                             )
                             Text(
-                                when (uiState.sortOrder) {
+                                text = when (uiState.sortOrder) {
                                     SortOrder.ORIGINAL -> "A-Z"
                                     SortOrder.A_TO_Z -> "A→Z"
                                     SortOrder.Z_TO_A -> "Z→A"
@@ -296,12 +327,14 @@ fun MainDatabaseScreen(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable {
-                            if (isSelected) onTagSelect("all") else onTagSelect(tag)
-                        }
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable {
+                                if (isSelected) onTagSelect("all") else onTagSelect(tag)
+                            }
                     ) {
                         Text(
-                            tag,
+                            text = tag,
                             fontFamily = LexendFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -316,10 +349,12 @@ fun MainDatabaseScreen(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isAllSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onTagSelect("all") }
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onTagSelect("all") }
                     ) {
                         Text(
-                            "All",
+                            text = "All",
                             fontFamily = LexendFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -331,22 +366,35 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Toast
+        // Save notification
         AnimatedVisibility(
             visible = uiState.saveNotification != null,
             enter = slideInVertically { -it } + fadeIn(),
             exit = slideOutVertically { -it } + fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp)
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 8.dp)
         ) {
             uiState.saveNotification?.let { msg ->
-                Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF1C1C1C), shadowElevation = 8.dp) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color(0xFF1C1C1C),
+                    shadowElevation = 8.dp
+                ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
-                        Text(msg, fontFamily = LexendFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
+                        Text(
+                            text = msg,
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = Color.White
+                        )
                     }
                 }
             }
