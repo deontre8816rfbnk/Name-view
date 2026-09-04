@@ -1,10 +1,17 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,338 +23,404 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.model.DatabaseEntry
-import com.example.ui.theme.AccentTeal
-import com.example.ui.theme.DangerRed
 import com.example.ui.theme.LexendFontFamily
-import com.example.ui.theme.Slate900
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddEditEntryDialog(
-    initialEntry: DatabaseEntry? = null,
+    initialEntry: DatabaseEntry?,
     existingColumns: List<String> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (DatabaseEntry) -> Unit
+    onSave: (DatabaseEntry) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     val isEdit = initialEntry != null
 
     var name by remember { mutableStateOf(initialEntry?.name ?: "") }
-    var id by remember { mutableStateOf(initialEntry?.id ?: "") }
+    var customId by remember { mutableStateOf(initialEntry?.id ?: "") }
     var description by remember { mutableStateOf(initialEntry?.description ?: "") }
-    var stats by remember { mutableStateOf(initialEntry?.stats ?: "") }
-    var tagsInput by remember { mutableStateOf(initialEntry?.tagsString ?: "") }
+    var tags = remember { mutableStateListOf<String>().apply { addAll(initialEntry?.tags ?: emptyList()) } }
+    var newTag by remember { mutableStateOf("") }
+    var customDate by remember { mutableStateOf("") }
+    var size by remember { mutableStateOf("MD") }
+    var color by remember { mutableStateOf("") }
 
-    var nameError by remember { mutableStateOf<String?>(null) }
+    // Stats
+    var speed by remember { mutableStateOf("0.00") }
+    var defense by remember { mutableStateOf("0.00") }
+    var attack by remember { mutableStateOf("0.00") }
+    var strength by remember { mutableStateOf("0.00") }
+    var resistance by remember { mutableStateOf("0.00") }
+    var flexibility by remember { mutableStateOf("0.00") }
+    var iq by remember { mutableStateOf("0.00") }
 
-    // Dynamic custom attributes
-    val customFields = remember {
-        mutableStateMapOf<String, String>().apply {
-            initialEntry?.extraFields?.forEach { (k, v) -> put(k, v) }
-        }
-    }
+    var sizeExpanded by remember { mutableStateOf(false) }
 
-    var newCustomKey by remember { mutableStateOf("") }
-    var newCustomVal by remember { mutableStateOf("") }
-    var showAddCustomField by remember { mutableStateOf(false) }
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = Color.White.copy(alpha = 0.35f),
+        unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        cursorColor = Color.White,
+        focusedLabelColor = Color.White.copy(alpha = 0.6f),
+        unfocusedLabelColor = Color.White.copy(alpha = 0.4f),
+        focusedContainerColor = Color(0xFF1A1A1A),
+        unfocusedContainerColor = Color(0xFF1A1A1A)
+    )
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier
-            .fillMaxWidth(0.95f)
-            .padding(16.dp)
-            .testTag("add_edit_entry_dialog"),
-        shape = RoundedCornerShape(20.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (isEdit) "Edit Database Entry" else "Add New Entry",
-                    fontFamily = LexendFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Name Field (Required)
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        if (it.isNotBlank()) nameError = null
-                    },
-                    label = { Text("Name *", fontFamily = LexendFontFamily) },
-                    placeholder = { Text("e.g. Aetherius", fontFamily = LexendFontFamily) },
-                    isError = nameError != null,
-                    supportingText = nameError?.let { { Text(it, color = DangerRed) } },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.94f)
+                .clip(RoundedCornerShape(22.dp)),
+            color = Color(0xFF121212)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+
+                // Header
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("input_entry_name")
-                )
-
-                // ID Field
-                OutlinedTextField(
-                    value = id,
-                    onValueChange = { id = it },
-                    label = { Text("ID (Optional)", fontFamily = LexendFontFamily) },
-                    placeholder = { Text("e.g. 001 or G-OV16", fontFamily = LexendFontFamily) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_entry_id")
-                )
-
-                // Description Field
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description", fontFamily = LexendFontFamily) },
-                    placeholder = { Text("Overview or bio details...", fontFamily = LexendFontFamily) },
-                    minLines = 2,
-                    maxLines = 4,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_entry_description")
-                )
-
-                // Stats Field
-                OutlinedTextField(
-                    value = stats,
-                    onValueChange = { stats = it },
-                    label = { Text("Stats (e.g. ATK: 85, DEF: 60)", fontFamily = LexendFontFamily) },
-                    placeholder = { Text("HP: 100, STR: 50, SPD: 70", fontFamily = LexendFontFamily) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_entry_stats")
-                )
-
-                // Tags Field
-                OutlinedTextField(
-                    value = tagsInput,
-                    onValueChange = { tagsInput = it },
-                    label = { Text("Tags (comma separated)", fontFamily = LexendFontFamily) },
-                    placeholder = { Text("warrior, boss, fire, ancient", fontFamily = LexendFontFamily) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_entry_tags")
-                )
-
-                // Custom Columns / Fields Section
-                if (customFields.isNotEmpty()) {
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Additional Column Fields",
+                        text = if (isEdit) initialEntry?.displayName ?: "Edit Name" else "New Name",
                         fontFamily = LexendFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        color = Color.White
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.7f))
+                    }
+                }
+
+                // Scrollable content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp)
+                ) {
+                    // ===== IDENTITY =====
+                    SectionTitle("IDENTITY")
+
+                    if (!isEdit) {
+                        FieldLabel("NAME")
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            placeholder = { Text("Enter the name...", color = Color.White.copy(alpha = 0.35f)) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = fieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+                    }
+
+                    FieldLabel("CUSTOM ID")
+                    OutlinedTextField(
+                        value = customId,
+                        onValueChange = { customId = it },
+                        placeholder = { Text("e.g. 42", color = Color.White.copy(alpha = 0.35f)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = fieldColors,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(14.dp))
+
+                    FieldLabel("DESCRIPTION")
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        placeholder = { Text("Write a short description...", color = Color.White.copy(alpha = 0.35f)) },
+                        minLines = 3,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = fieldColors,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(14.dp))
+
+                    FieldLabel("TAGS")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = newTag,
+                            onValueChange = { newTag = it },
+                            placeholder = { Text("Add tag...", color = Color.White.copy(alpha = 0.35f)) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = fieldColors,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color.White.copy(alpha = 0.12f),
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clickable {
+                                    val t = newTag.trim()
+                                    if (t.isNotEmpty() && !tags.contains(t)) {
+                                        tags.add(t)
+                                        newTag = ""
+                                    }
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Add, null, tint = Color.White)
+                            }
+                        }
+                    }
+                    if (tags.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            tags.forEach { tag ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color.White.copy(alpha = 0.1f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(tag, fontFamily = LexendFontFamily, fontSize = 13.sp, color = Color.White)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("×", color = Color.White.copy(alpha = 0.6f), modifier = Modifier.clickable { tags.remove(tag) })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+
+                    FieldLabel("CUSTOM DATE/TIME")
+                    OutlinedTextField(
+                        value = customDate,
+                        onValueChange = { customDate = it },
+                        placeholder = { Text("", color = Color.White.copy(alpha = 0.35f)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = fieldColors,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    customFields.forEach { (key, value) ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                    Spacer(Modifier.height(24.dp))
+
+                    // ===== APPEARANCE =====
+                    SectionTitle("APPEARANCE")
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            FieldLabel("SIZE")
+                            ExposedDropdownMenuBox(
+                                expanded = sizeExpanded,
+                                onExpandedChange = { sizeExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = size,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sizeExpanded) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = fieldColors,
+                                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = sizeExpanded,
+                                    onDismissRequest = { sizeExpanded = false }
+                                ) {
+                                    listOf("SM", "MD", "LG", "XL").forEach { option ->
+                                        DropdownMenuItem(
+                                            text = { Text(option) },
+                                            onClick = {
+                                                size = option
+                                                sizeExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            FieldLabel("COLOR")
                             OutlinedTextField(
-                                value = value,
-                                onValueChange = { customFields[key] = it },
-                                label = { Text(key, fontFamily = LexendFontFamily) },
+                                value = color,
+                                onValueChange = { color = it },
+                                placeholder = { Text("e.g. BLUE, GOLD", color = Color.White.copy(alpha = 0.35f)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.weight(1f)
+                                colors = fieldColors,
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            IconButton(onClick = { customFields.remove(key) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Remove $key",
-                                    tint = DangerRed
+                        }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // ===== STATS =====
+                    SectionTitle("STATS (0.00 – 99.99)")
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StatField("SPEED", speed, { speed = it }, Modifier.weight(1f), fieldColors)
+                        StatField("DEFENSE", defense, { defense = it }, Modifier.weight(1f), fieldColors)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StatField("ATTACK", attack, { attack = it }, Modifier.weight(1f), fieldColors)
+                        StatField("STRENGTH", strength, { strength = it }, Modifier.weight(1f), fieldColors)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StatField("RESISTANCE", resistance, { resistance = it }, Modifier.weight(1f), fieldColors)
+                        StatField("FLEXIBILITY", flexibility, { flexibility = it }, Modifier.weight(1f), fieldColors)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    StatField("IQ", iq, { iq = it }, Modifier.fillMaxWidth(0.5f), fieldColors)
+
+                    Spacer(Modifier.height(32.dp))
+                }
+
+                // Bottom buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (isEdit && onDelete != null) {
+                        TextButton(
+                            onClick = onDelete,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Delete", color = Color(0xFFEF4444), fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel", color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                    }
+
+                    Button(
+                        onClick = {
+                            val finalName = if (isEdit) initialEntry!!.name else name.trim()
+                            if (finalName.isBlank()) return@Button
+
+                            val statsStr = listOf(
+                                "SPEED:$speed",
+                                "DEFENSE:$defense",
+                                "ATTACK:$attack",
+                                "STRENGTH:$strength",
+                                "RESISTANCE:$resistance",
+                                "FLEXIBILITY:$flexibility",
+                                "IQ:$iq"
+                            ).joinToString(", ")
+
+                            onSave(
+                                DatabaseEntry(
+                                    name = finalName,
+                                    id = customId.trim(),
+                                    description = description.trim(),
+                                    tags = tags.toList(),
+                                    stats = statsStr
                                 )
-                            }
-                        }
-                    }
-                }
-
-                // Add Custom Column Form
-                if (showAddCustomField) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                RoundedCornerShape(12.dp)
                             )
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "New Column Attribute",
+                            if (isEdit) "Update" else "Save",
                             fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = newCustomKey,
-                                onValueChange = { newCustomKey = it },
-                                placeholder = { Text("Column Name", fontSize = 12.sp) },
-                                singleLine = true,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = newCustomVal,
-                                onValueChange = { newCustomVal = it },
-                                placeholder = { Text("Value", fontSize = 12.sp) },
-                                singleLine = true,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextButton(onClick = {
-                                showAddCustomField = false
-                                newCustomKey = ""
-                                newCustomVal = ""
-                            }) {
-                                Text("Cancel", fontFamily = LexendFontFamily)
-                            }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Button(
-                                onClick = {
-                                    if (newCustomKey.isNotBlank()) {
-                                        customFields[newCustomKey.trim()] = newCustomVal.trim()
-                                        newCustomKey = ""
-                                        newCustomVal = ""
-                                        showAddCustomField = false
-                                    }
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentTeal)
-                            ) {
-                                Text("Add Field", fontFamily = LexendFontFamily)
-                            }
-                        }
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { showAddCustomField = true },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Add Custom Column / Field",
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (name.isBlank()) {
-                        nameError = "Name cannot be empty"
-                        return@Button
-                    }
-                    val parsedTags = tagsInput.split(",", ";")
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() }
-
-                    val newEntry = DatabaseEntry(
-                        name = name.trim(),
-                        id = id.trim(),
-                        description = description.trim(),
-                        stats = stats.trim(),
-                        tags = parsedTags,
-                        extraFields = customFields.toMap()
-                    )
-                    onSave(newEntry)
-                },
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Slate900,
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.testTag("save_entry_button")
-            ) {
-                Text(
-                    text = if (isEdit) "Save Changes" else "Add Entry",
-                    fontFamily = LexendFontFamily,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", fontFamily = LexendFontFamily, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        fontFamily = LexendFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp,
+        color = Color.White.copy(alpha = 0.45f),
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(bottom = 10.dp)
     )
+}
+
+@Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text = text,
+        fontFamily = LexendFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp,
+        color = Color.White.copy(alpha = 0.55f),
+        modifier = Modifier.padding(bottom = 6.dp)
+    )
+}
+
+@Composable
+private fun StatField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    colors: androidx.compose.material3.TextFieldColors
+) {
+    Column(modifier = modifier) {
+        FieldLabel(label)
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = colors,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
