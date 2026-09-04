@@ -92,6 +92,7 @@ fun MainDatabaseScreen(
     val focusManager = LocalFocusManager.current
 
     val filteredList = uiState.filteredEntries
+    val listState = rememberLazyListState()
 
     Box(
         modifier = modifier
@@ -103,7 +104,7 @@ fun MainDatabaseScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top bar
+            // Top
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,16 +133,9 @@ fun MainDatabaseScreen(
                 value = uiState.searchQuery,
                 onValueChange = onSearchChange,
                 placeholder = {
-                    Text(
-                        "Search names, tags...",
-                        fontFamily = LexendFontFamily,
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.4f)
-                    )
+                    Text("Search names, tags...", fontFamily = LexendFontFamily, fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f))
                 },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.6f))
-                },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.6f)) },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchChange("") }) {
@@ -168,9 +162,8 @@ fun MainDatabaseScreen(
                     .focusRequester(focusRequester)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier = Modifier.height(12.dp))
 
-            // Content
             when {
                 uiState.isLoading -> {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -194,12 +187,16 @@ fun MainDatabaseScreen(
                 }
                 else -> {
                     LazyColumn(
-                        state = rememberLazyListState(),
+                        state = listState,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 160.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(filteredList, key = { "${it.name}_${it.id}" }) { entry ->
+                        // Stable key is critical for large lists
+                        items(
+                            items = filteredList,
+                            key = { entry -> entry.name + "|" + entry.id }
+                        ) { entry ->
                             DatabaseCard(
                                 entry = entry,
                                 onClick = { entryToEdit = entry },
@@ -211,14 +208,13 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Bottom FABs + Tags
+        // Bottom
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // FABs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -251,11 +247,9 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // Tags under FABs (transparent)
+            // Tags under FABs
             LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 reverseLayout = true
@@ -297,7 +291,7 @@ fun MainDatabaseScreen(
                     }
                 }
 
-                items(uiState.allTags) { tag ->
+                items(uiState.allTags, key = { it }) { tag ->
                     val isSelected = uiState.selectedTag.equals(tag, ignoreCase = true)
                     Surface(
                         shape = RoundedCornerShape(20.dp),
@@ -337,7 +331,7 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Save notification
+        // Toast
         AnimatedVisibility(
             visible = uiState.saveNotification != null,
             enter = slideInVertically { -it } + fadeIn(),
@@ -359,7 +353,7 @@ fun MainDatabaseScreen(
         }
     }
 
-    // Dialogs – only using parameters that currently exist
+    // Dialogs
     if (isAddingNew) {
         AddEditEntryDialog(
             initialEntry = null,
@@ -379,6 +373,10 @@ fun MainDatabaseScreen(
             onDismiss = { entryToEdit = null },
             onSave = {
                 onUpdateEntry(entry, it)
+                entryToEdit = null
+            },
+            onDelete = {
+                onDeleteEntry(entry)
                 entryToEdit = null
             }
         )
