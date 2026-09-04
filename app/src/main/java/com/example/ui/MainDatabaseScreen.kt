@@ -27,6 +27,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -59,10 +61,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,109 +99,100 @@ fun MainDatabaseScreen(
     var isAddingNew by remember { mutableStateOf(false) }
     var entryToDelete by remember { mutableStateOf<DatabaseEntry?>(null) }
 
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
     val filteredList = uiState.filteredEntries
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFF0A0A0A))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top bar
+            // Top bar: Title + count only
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "Main Database",
-                        fontFamily = LexendFontFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 28.sp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.testTag("main_database_title")
-                    )
-                    Text(
-                        text = "${uiState.entries.size} items in database",
-                        fontFamily = LexendFontFamily,
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "Main Database",
+                    fontFamily = LexendFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 26.sp,
+                    color = Color.White
+                )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Button(
-                        onClick = { isAddingNew = true },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Slate900),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                }
+                // Only the number of names
+                Text(
+                    text = "${uiState.entries.size}",
+                    fontFamily = LexendFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
             }
 
-            // Search
+            // Search bar
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchChange,
                 placeholder = {
                     Text(
-                        "Search names, ID, tags, stats...",
+                        "Search names, tags...",
                         fontFamily = LexendFontFamily,
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = Color.White.copy(alpha = 0.4f)
                     )
                 },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.6f)
+                    )
                 },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White.copy(alpha = 0.6f))
                         }
                     }
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Slate900,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                    focusedBorderColor = Color.White.copy(alpha = 0.3f),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
                 ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .padding(horizontal = 20.dp)
+                    .focusRequester(focusRequester)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Content
+            // Cards list
             when {
                 uiState.isLoading -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                        modifier = Modifier.fillMaxWidth().weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = AccentTeal)
@@ -203,47 +200,26 @@ fun MainDatabaseScreen(
                 }
                 filteredList.isEmpty() -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(24.dp),
+                        modifier = Modifier.fillMaxWidth().weight(1f).padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(64.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Storage,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Icon(
+                                Icons.Default.Storage,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
-                                    "No matching entries found"
+                                    "No matching names"
                                 else
-                                    "Database table is empty",
+                                    "No names yet",
                                 fontFamily = LexendFontFamily,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
-                                    "Try adjusting your search or tag filter."
-                                else
-                                    "Add your first entry or check your linked .md file.",
-                                fontFamily = LexendFontFamily,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontSize = 17.sp,
+                                color = Color.White.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -251,17 +227,14 @@ fun MainDatabaseScreen(
                 else -> {
                     LazyColumn(
                         state = rememberLazyListState(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 140.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 160.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(filteredList, key = { "${it.name}_${it.id}" }) { entry ->
                             DatabaseCard(
                                 entry = entry,
-                                onEdit = { entryToEdit = entry },
-                                onDelete = { entryToDelete = entry },
+                                onClick = { entryToEdit = entry },
                                 onTagClick = { onTagSelect(it) }
                             )
                         }
@@ -270,111 +243,28 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Bottom tags + FABs
+        // ========== BOTTOM AREA ==========
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // Tags bar
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(elevation = 8.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-            ) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    reverseLayout = true
-                ) {
-                    item {
-                        val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSortActive) AccentTeal else MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable { onToggleSort() }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = when (uiState.sortOrder) {
-                                        SortOrder.ORIGINAL -> Icons.Default.SortByAlpha
-                                        SortOrder.A_TO_Z -> Icons.Default.ArrowUpward
-                                        SortOrder.Z_TO_A -> Icons.Default.ArrowDownward
-                                    },
-                                    contentDescription = null,
-                                    tint = if (isSortActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Text(
-                                    text = when (uiState.sortOrder) {
-                                        SortOrder.ORIGINAL -> "A-Z"
-                                        SortOrder.A_TO_Z -> "A→Z"
-                                        SortOrder.Z_TO_A -> "Z→A"
-                                    },
-                                    fontFamily = LexendFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (isSortActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-
-                    items(uiState.allTags) { tag ->
-                        val isSelected = uiState.selectedTag.equals(tag, ignoreCase = true)
-                        TagPill(
-                            tag = tag,
-                            isSelected = isSelected,
-                            onClick = {
-                                if (isSelected) onTagSelect("all") else onTagSelect(tag)
-                            }
-                        )
-                    }
-
-                    item {
-                        val isAllSelected = uiState.selectedTag.equals("all", ignoreCase = true)
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isAllSelected) Slate900 else MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable { onTagSelect("all") }
-                        ) {
-                            Text(
-                                text = "All",
-                                fontFamily = LexendFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // FABs
+            // FABs first
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.End
             ) {
+                // Search FAB – focuses the search field and opens keyboard
                 FloatingActionButton(
-                    onClick = { /* search focus handled by text field */ },
-                    containerColor = Color.White,
-                    contentColor = Slate900,
+                    onClick = {
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    },
+                    containerColor = Color(0xFF1C1C1C),
+                    contentColor = Color.White,
                     elevation = FloatingActionButtonDefaults.elevation(4.dp),
                     modifier = Modifier.size(52.dp)
                 ) {
@@ -383,19 +273,113 @@ fun MainDatabaseScreen(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
+                // Add FAB
                 FloatingActionButton(
                     onClick = { isAddingNew = true },
-                    containerColor = Slate900,
-                    contentColor = Color.White,
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
                     elevation = FloatingActionButtonDefaults.elevation(6.dp),
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(28.dp))
                 }
             }
+
+            // Tags bar – UNDER the FABs, transparent background
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                reverseLayout = true
+            ) {
+                // A-Z on the right
+                item {
+                    val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSortActive) AccentTeal else Color.White.copy(alpha = 0.08f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onToggleSort() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = when (uiState.sortOrder) {
+                                    SortOrder.ORIGINAL -> Icons.Default.SortByAlpha
+                                    SortOrder.A_TO_Z -> Icons.Default.ArrowUpward
+                                    SortOrder.Z_TO_A -> Icons.Default.ArrowDownward
+                                },
+                                contentDescription = null,
+                                tint = if (isSortActive) Color.White else Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = when (uiState.sortOrder) {
+                                    SortOrder.ORIGINAL -> "A-Z"
+                                    SortOrder.A_TO_Z -> "A→Z"
+                                    SortOrder.Z_TO_A -> "Z→A"
+                                },
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = if (isSortActive) Color.White else Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+
+                items(uiState.allTags) { tag ->
+                    val isSelected = uiState.selectedTag.equals(tag, ignoreCase = true)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable {
+                                if (isSelected) onTagSelect("all") else onTagSelect(tag)
+                            }
+                    ) {
+                        Text(
+                            text = tag,
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                        )
+                    }
+                }
+
+                // All
+                item {
+                    val isAllSelected = uiState.selectedTag.equals("all", ignoreCase = true)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isAllSelected) Color.White else Color.White.copy(alpha = 0.08f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onTagSelect("all") }
+                    ) {
+                        Text(
+                            text = "All",
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = if (isAllSelected) Color.Black else Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                        )
+                    }
+                }
+            }
         }
 
-        // Save notification
+        // Save toast
         AnimatedVisibility(
             visible = uiState.saveNotification != null,
             enter = slideInVertically { -it } + fadeIn(),
@@ -403,12 +387,12 @@ fun MainDatabaseScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
-                .padding(top = 10.dp)
+                .padding(top = 8.dp)
         ) {
             uiState.saveNotification?.let { msg ->
                 Surface(
                     shape = RoundedCornerShape(24.dp),
-                    color = Slate900,
+                    color = Color(0xFF1C1C1C),
                     shadowElevation = 8.dp
                 ) {
                     Row(
@@ -417,13 +401,7 @@ fun MainDatabaseScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
-                        Text(
-                            text = msg,
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            color = Color.White
-                        )
+                        Text(msg, fontFamily = LexendFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
                     }
                 }
             }
@@ -451,41 +429,12 @@ fun MainDatabaseScreen(
             onSave = {
                 onUpdateEntry(entry, it)
                 entryToEdit = null
-            }
-        )
-    }
-
-    entryToDelete?.let { entry ->
-        AlertDialog(
-            onDismissRequest = { entryToDelete = null },
-            title = {
-                Text(
-                    "Delete ${entry.displayName}?",
-                    fontFamily = LexendFontFamily,
-                    fontWeight = FontWeight.Bold
-                )
+            */
             },
-            text = {
-                Text(
-                    "This will permanently remove the entry from the linked .md file.",
-                    fontFamily = LexendFontFamily
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onDeleteEntry(entry)
-                        entryToDelete = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
-                ) {
-                    Text("Delete", fontFamily = LexendFontFamily)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { entryToDelete = null }) {
-                    Text("Cancel", fontFamily = LexendFontFamily)
-                }
+            ,/* onDelete = {
+                onDeleteEntry(entry)
+                entryToEdit = null
+            */
             }
         )
     }
