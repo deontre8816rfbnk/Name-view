@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,6 +50,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -103,7 +105,7 @@ fun MainDatabaseScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top: Title + Refresh + Add
+            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,7 +134,7 @@ fun MainDatabaseScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    IconButton(onClick = onRefresh, modifier = Modifier.testTag("refresh_button")) {
+                    IconButton(onClick = onRefresh) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh",
@@ -143,8 +145,7 @@ fun MainDatabaseScreen(
                         onClick = { isAddingNew = true },
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Slate900),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                        modifier = Modifier.testTag("add_name_top_button")
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -153,7 +154,7 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // Search bar
+            // Search
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchChange,
@@ -166,7 +167,7 @@ fun MainDatabaseScreen(
                     )
                 },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.Search, contentDescription = null)
                 },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
@@ -184,79 +185,99 @@ fun MainDatabaseScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 4.dp)
-                    .testTag("search_text_field")
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Cards list
-            if (uiState.isLoading) {
-                Box(Modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = AccentTeal)
-                }
-            } else if (filteredList.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f).padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(64.dp)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Storage, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
-                                "No matching entries found" else "Database table is empty",
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
-                                "Try adjusting your search or tag filter."
-                            else
-                                "Add your first entry or check your linked .md file.",
-                            fontFamily = LexendFontFamily,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // Content
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AccentTeal)
                     }
                 }
-            } else {
-                LazyColumn(
-                    state = rememberLazyListState(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .testTag("database_cards_list"),
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 140.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    items(filteredList, key = { "${it.name}_${it.id}" }) { entry ->
-                        DatabaseCard(
-                            entry = entry,
-                            onEdit = { entryToEdit = entry },
-                            onDelete = { entryToDelete = entry },
-                            onTagClick = { onTagSelect(it) }
-                        )
+                filteredList.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Storage,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
+                                    "No matching entries found"
+                                else
+                                    "Database table is empty",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
+                                    "Try adjusting your search or tag filter."
+                                else
+                                    "Add your first entry or check your linked .md file.",
+                                fontFamily = LexendFontFamily,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        state = rememberLazyListState(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 140.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(filteredList, key = { "${it.name}_${it.id}" }) { entry ->
+                            DatabaseCard(
+                                entry = entry,
+                                onEdit = { entryToEdit = entry },
+                                onDelete = { entryToDelete = entry },
+                                onTagClick = { onTagSelect(it) }
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // ========== BOTTOM AREA ==========
-        // Tags row sits RIGHT ABOVE the FABs
+        // Bottom tags + FABs
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // Tags bar – A-Z on the RIGHT, All + tags scrollable
+            // Tags bar
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,28 +287,19 @@ fun MainDatabaseScreen(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp)
-                        .testTag("bottom_tags_row"),
+                        .padding(vertical = 10.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    reverseLayout = true          // makes items start from the right
+                    reverseLayout = true
                 ) {
-                    // A-Z sorting – always the right-most item because of reverseLayout
                     item {
-                        val sortLabel = when (uiState.sortOrder) {
-                            SortOrder.ORIGINAL -> "A-Z"
-                            SortOrder.A_TO_Z -> "A→Z"
-                            SortOrder.Z_TO_A -> "Z→A"
-                        }
                         val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
-
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = if (isSortActive) AccentTeal else MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
                                 .clickable { onToggleSort() }
-                                .testTag("tag_pill_az_sorting")
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -305,7 +317,11 @@ fun MainDatabaseScreen(
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Text(
-                                    text = sortLabel,
+                                    text = when (uiState.sortOrder) {
+                                        SortOrder.ORIGINAL -> "A-Z"
+                                        SortOrder.A_TO_Z -> "A→Z"
+                                        SortOrder.Z_TO_A -> "Z→A"
+                                    },
                                     fontFamily = LexendFontFamily,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
@@ -315,17 +331,17 @@ fun MainDatabaseScreen(
                         }
                     }
 
-                    // Dynamic tags
                     items(uiState.allTags) { tag ->
                         val isSelected = uiState.selectedTag.equals(tag, ignoreCase = true)
                         TagPill(
                             tag = tag,
                             isSelected = isSelected,
-                            onClick = { if (isSelected) onTagSelect("all") else onTagSelect(tag) }
+                            onClick = {
+                                if (isSelected) onTagSelect("all") else onTagSelect(tag)
+                            }
                         )
                     }
 
-                    // "All" tag
                     item {
                         val isAllSelected = uiState.selectedTag.equals("all", ignoreCase = true)
                         Surface(
@@ -334,7 +350,6 @@ fun MainDatabaseScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
                                 .clickable { onTagSelect("all") }
-                                .testTag("tag_pill_all")
                         ) {
                             Text(
                                 text = "All",
@@ -349,22 +364,19 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // FABs row (Search + Add) – sits at the very bottom
+            // FABs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.End
             ) {
                 FloatingActionButton(
-                    onClick = { /* focus is handled by the search field above */ },
+                    onClick = { /* search focus handled by text field */ },
                     containerColor = Color.White,
                     contentColor = Slate900,
                     elevation = FloatingActionButtonDefaults.elevation(4.dp),
-                    modifier = Modifier
-                        .size(52.dp)
-                        .testTag("search_fab")
+                    modifier = Modifier.size(52.dp)
                 ) {
                     Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(24.dp))
                 }
@@ -376,11 +388,9 @@ fun MainDatabaseScreen(
                     containerColor = Slate900,
                     contentColor = Color.White,
                     elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                    modifier = Modifier
-                        .size(56.dp)
-                        .testTag("add_fab")
+                    modifier = Modifier.size(56.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add name", modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(28.dp))
                 }
             }
         }
@@ -407,7 +417,13 @@ fun MainDatabaseScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
-                        Text(msg, fontFamily = LexendFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
+                        Text(
+                            text = msg,
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = Color.White
+                        )
                     }
                 }
             }
@@ -420,7 +436,10 @@ fun MainDatabaseScreen(
             initialEntry = null,
             existingColumns = uiState.columns,
             onDismiss = { isAddingNew = false },
-            onSave = { onAddEntry(it); isAddingNew = false }
+            onSave = {
+                onAddEntry(it)
+                isAddingNew = false
+            }
         )
     }
 
@@ -429,23 +448,42 @@ fun MainDatabaseScreen(
             initialEntry = entry,
             existingColumns = uiState.columns,
             onDismiss = { entryToEdit = null },
-            onSave = { onUpdateEntry(entry, it); entryToEdit = null }
+            onSave = {
+                onUpdateEntry(entry, it)
+                entryToEdit = null
+            }
         )
     }
 
     entryToDelete?.let { entry ->
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { entryToDelete = null },
-            title = { Text("Delete ${entry.displayName}?", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold) },
-            text = { Text("This will permanently remove the entry from the linked .md file.", fontFamily = LexendFontFamily) },
+            title = {
+                Text(
+                    "Delete ${entry.displayName}?",
+                    fontFamily = LexendFontFamily,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    "This will permanently remove the entry from the linked .md file.",
+                    fontFamily = LexendFontFamily
+                )
+            },
             confirmButton = {
                 Button(
-                    onClick = { onDeleteEntry(entry); entryToDelete = null },
+                    onClick = {
+                        onDeleteEntry(entry)
+                        entryToDelete = null
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
-                ) { Text("Delete", fontFamily = LexendFontFamily) }
+                ) {
+                    Text("Delete", fontFamily = LexendFontFamily)
+                }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { entryToDelete = null }) {
+                TextButton(onClick = { entryToDelete = null }) {
                     Text("Cancel", fontFamily = LexendFontFamily)
                 }
             }
