@@ -23,7 +23,7 @@ val LexendFontFamily = FontFamily(
     Font(googleFont = LexendFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
     Font(googleFont = LexendFont, fontProvider = fontProvider, weight = FontWeight.Bold),
     Font(googleFont = LexendFont, fontProvider = fontProvider, weight = FontWeight.ExtraBold),
-    Font(googleFont = LexendFont, fontProvider = fontProvider, weight = FontWeight.Black),
+    Font(googleFont = LexendFont, fontProvider = fontProvider, weight = FontWeight.Black)
 )
 
 val Typography = Typography(
@@ -45,50 +45,42 @@ val Typography = Typography(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 20.sp,
-        lineHeight = 26.sp,
-        letterSpacing = 0.sp
+        lineHeight = 26.sp
     ),
     titleMedium = TextStyle(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
-        lineHeight = 22.sp,
-        letterSpacing = 0.15.sp
+        lineHeight = 22.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
-        lineHeight = 22.sp,
-        letterSpacing = 0.25.sp
+        lineHeight = 22.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        lineHeight = 20.sp
     ),
     labelLarge = TextStyle(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        lineHeight = 20.sp
     ),
     labelMedium = TextStyle(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 16.sp
     ),
     labelSmall = TextStyle(
         fontFamily = LexendFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        lineHeight = 14.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 14.sp
     )
 )
-
