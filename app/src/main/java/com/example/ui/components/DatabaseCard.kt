@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,10 +40,11 @@ import com.example.ui.theme.LexendFontFamily
 @Composable
 fun DatabaseCard(
     entry: DatabaseEntry,
-    onClick: () -> Unit,                 // whole card opens edit
+    onClick: () -> Unit,
     onTagClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Keep expand state local and lightweight
     var isExpanded by remember { mutableStateOf(false) }
 
     Surface(
@@ -54,20 +53,19 @@ fun DatabaseCard(
             .clip(RoundedCornerShape(16.dp))
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.12f),   // visible edge line like search bar
+                color = Color.White.copy(alpha = 0.10f),
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable { onClick() }
-            .testTag("database_card_${entry.name}"),
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF121212)                          // same dark as background
+        color = Color(0xFF141414)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            // Name + expand arrow
+            // Name + arrow
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -77,74 +75,72 @@ fun DatabaseCard(
                     text = entry.displayName,
                     fontFamily = LexendFontFamily,
                     fontWeight = FontWeight.Black,
-                    fontSize = 20.sp,
+                    fontSize = 19.sp,
                     color = Color.White,
+                    maxLines = 1,
                     modifier = Modifier.weight(1f)
                 )
 
                 IconButton(
                     onClick = { isExpanded = !isExpanded },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(22.dp)
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.55f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            // Tags (always visible, smaller font)
+            // Tags (always visible, small)
             if (entry.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    entry.tags.forEach { tag ->
+                    entry.tags.take(6).forEach { tag ->   // limit to avoid heavy composition
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color.White.copy(alpha = 0.07f),
                             modifier = Modifier.clickable { onTagClick(tag) }
                         ) {
                             Text(
                                 text = tag,
                                 fontFamily = LexendFontFamily,
                                 fontWeight = FontWeight.Medium,
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.85f),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                             )
                         }
                     }
                 }
             }
 
-            // Expanded content: description + ID
+            // Expanded: ID + Description
             AnimatedVisibility(visible = isExpanded) {
                 Column {
-                    Spacer(modifier = Modifier.height(12.dp))
-
+                    Spacer(modifier = Modifier.height(10.dp))
                     if (entry.id.isNotBlank()) {
                         Text(
                             text = "ID: ${entry.id}",
                             fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.6f)
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.5f)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
-
                     if (entry.description.isNotBlank()) {
                         Text(
                             text = entry.description,
                             fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            color = Color.White.copy(alpha = 0.75f)
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            color = Color.White.copy(alpha = 0.7f),
+                            maxLines = 4
                         )
                     }
                 }
