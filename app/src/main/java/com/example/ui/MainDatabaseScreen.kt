@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,24 +34,18 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,19 +59,15 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.DatabaseEntry
 import com.example.ui.components.AddEditEntryDialog
 import com.example.ui.components.DatabaseCard
-import com.example.ui.components.TagPill
 import com.example.ui.theme.AccentTeal
 import com.example.ui.theme.LexendFontFamily
-import com.example.ui.theme.Slate900
 import com.example.ui.theme.SuccessGreen
 import com.example.viewmodel.DatabaseUiState
 import com.example.viewmodel.SortOrder
@@ -97,7 +86,6 @@ fun MainDatabaseScreen(
 ) {
     var entryToEdit by remember { mutableStateOf<DatabaseEntry?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
-    var entryToDelete by remember { mutableStateOf<DatabaseEntry?>(null) }
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -115,7 +103,7 @@ fun MainDatabaseScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top bar: Title + count only
+            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -130,8 +118,6 @@ fun MainDatabaseScreen(
                     fontSize = 26.sp,
                     color = Color.White
                 )
-
-                // Only the number of names
                 Text(
                     text = "${uiState.entries.size}",
                     fontFamily = LexendFontFamily,
@@ -141,7 +127,7 @@ fun MainDatabaseScreen(
                 )
             }
 
-            // Search bar
+            // Search
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchChange,
@@ -154,16 +140,12 @@ fun MainDatabaseScreen(
                     )
                 },
                 leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.6f)
-                    )
+                    Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.6f))
                 },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White.copy(alpha = 0.6f))
+                            Icon(Icons.Default.Clear, null, tint = Color.White.copy(alpha = 0.6f))
                         }
                     }
                 },
@@ -188,34 +170,20 @@ fun MainDatabaseScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Cards list
+            // Content
             when {
                 uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = AccentTeal)
                     }
                 }
                 filteredList.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f).padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxWidth().weight(1f).padding(24.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Storage,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Icon(Icons.Default.Storage, null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
+                            Spacer(Modifier.height(12.dp))
                             Text(
-                                text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
-                                    "No matching names"
-                                else
-                                    "No names yet",
+                                if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all") "No matching names" else "No names yet",
                                 fontFamily = LexendFontFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp,
@@ -243,21 +211,20 @@ fun MainDatabaseScreen(
             }
         }
 
-        // ========== BOTTOM AREA ==========
+        // Bottom FABs + Tags
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // FABs first
+            // FABs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                // Search FAB – focuses the search field and opens keyboard
                 FloatingActionButton(
                     onClick = {
                         focusRequester.requestFocus()
@@ -268,12 +235,11 @@ fun MainDatabaseScreen(
                     elevation = FloatingActionButtonDefaults.elevation(4.dp),
                     modifier = Modifier.size(52.dp)
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Search, null, modifier = Modifier.size(24.dp))
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
 
-                // Add FAB
                 FloatingActionButton(
                     onClick = { isAddingNew = true },
                     containerColor = Color.White,
@@ -281,11 +247,11 @@ fun MainDatabaseScreen(
                     elevation = FloatingActionButtonDefaults.elevation(6.dp),
                     modifier = Modifier.size(56.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(28.dp))
                 }
             }
 
-            // Tags bar – UNDER the FABs, transparent background
+            // Tags under FABs (transparent)
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -294,15 +260,12 @@ fun MainDatabaseScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 reverseLayout = true
             ) {
-                // A-Z on the right
                 item {
                     val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSortActive) AccentTeal else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { onToggleSort() }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onToggleSort() }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -310,17 +273,17 @@ fun MainDatabaseScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = when (uiState.sortOrder) {
+                                when (uiState.sortOrder) {
                                     SortOrder.ORIGINAL -> Icons.Default.SortByAlpha
                                     SortOrder.A_TO_Z -> Icons.Default.ArrowUpward
                                     SortOrder.Z_TO_A -> Icons.Default.ArrowDownward
                                 },
-                                contentDescription = null,
+                                null,
                                 tint = if (isSortActive) Color.White else Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(15.dp)
                             )
                             Text(
-                                text = when (uiState.sortOrder) {
+                                when (uiState.sortOrder) {
                                     SortOrder.ORIGINAL -> "A-Z"
                                     SortOrder.A_TO_Z -> "A→Z"
                                     SortOrder.Z_TO_A -> "Z→A"
@@ -339,14 +302,12 @@ fun MainDatabaseScreen(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable {
-                                if (isSelected) onTagSelect("all") else onTagSelect(tag)
-                            }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable {
+                            if (isSelected) onTagSelect("all") else onTagSelect(tag)
+                        }
                     ) {
                         Text(
-                            text = tag,
+                            tag,
                             fontFamily = LexendFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -356,18 +317,15 @@ fun MainDatabaseScreen(
                     }
                 }
 
-                // All
                 item {
                     val isAllSelected = uiState.selectedTag.equals("all", ignoreCase = true)
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isAllSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { onTagSelect("all") }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onTagSelect("all") }
                     ) {
                         Text(
-                            text = "All",
+                            "All",
                             fontFamily = LexendFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -379,22 +337,15 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Save toast
+        // Save notification
         AnimatedVisibility(
             visible = uiState.saveNotification != null,
             enter = slideInVertically { -it } + fadeIn(),
             exit = slideOutVertically { -it } + fadeOut(),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(top = 8.dp)
+            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp)
         ) {
             uiState.saveNotification?.let { msg ->
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFF1C1C1C),
-                    shadowElevation = 8.dp
-                ) {
+                Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF1C1C1C), shadowElevation = 8.dp) {
                     Row(
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -408,7 +359,7 @@ fun MainDatabaseScreen(
         }
     }
 
-    // Dialogs
+    // Dialogs – only using parameters that currently exist
     if (isAddingNew) {
         AddEditEntryDialog(
             initialEntry = null,
@@ -429,12 +380,6 @@ fun MainDatabaseScreen(
             onSave = {
                 onUpdateEntry(entry, it)
                 entryToEdit = null
-            */
-            },
-            ,/* onDelete = {
-                onDeleteEntry(entry)
-                entryToEdit = null
-            */
             }
         )
     }
