@@ -98,7 +98,6 @@ fun MainDatabaseScreen(
     var entryToEdit by remember { mutableStateOf<DatabaseEntry?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
 
-    // Multi-select
     var selectionMode by remember { mutableStateOf(false) }
     var selectedKeys by remember { mutableStateOf(setOf<String>()) }
 
@@ -198,7 +197,7 @@ fun MainDatabaseScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Content – 2 columns
+            // Content
             when {
                 uiState.isLoading -> {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -231,7 +230,8 @@ fun MainDatabaseScreen(
                     ) {
                         items(
                             items = filteredList,
-                            key = { entryKey(it) }
+                            key = { entryKey(it) },
+                            contentType = { "name_card" }          // helps performance with large lists
                         ) { entry ->
                             val key = entryKey(entry)
                             DatabaseCard(
@@ -261,23 +261,17 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Bottom area
+        // Bottom
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // Multi-select action bar
             if (selectionMode && selectedKeys.isNotEmpty()) {
-                Surface(
-                    color = Color(0xFF1A1A1A),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Surface(color = Color(0xFF1A1A1A), modifier = Modifier.fillMaxWidth()) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -292,7 +286,6 @@ fun MainDatabaseScreen(
                             }
                             Text("Copy", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
                         }
-
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(onClick = {
                                 filteredList
@@ -305,9 +298,8 @@ fun MainDatabaseScreen(
                             }
                             Text("Remove", fontSize = 11.sp, color = Color(0xFFEF4444), fontFamily = LexendFontFamily)
                         }
-
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            IconButton(onClick = { /* future tag picker */ }) {
+                            IconButton(onClick = {}) {
                                 Icon(Icons.Default.Label, null, tint = Color.White)
                             }
                             Text("Tag", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
@@ -316,12 +308,9 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // FABs
             if (!selectionMode) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
                     FloatingActionButton(
@@ -349,31 +338,25 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // Tags strip + Jump (right side)
             LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 reverseLayout = true
             ) {
-                // Jump button
                 item {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = Color.White.copy(alpha = 0.10f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable {
-                                scope.launch {
-                                    if (gridState.canScrollForward) {
-                                        gridState.animateScrollToItem(filteredList.lastIndex.coerceAtLeast(0))
-                                    } else {
-                                        gridState.animateScrollToItem(0)
-                                    }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable {
+                            scope.launch {
+                                if (gridState.canScrollForward) {
+                                    gridState.scrollToItem(filteredList.lastIndex.coerceAtLeast(0))
+                                } else {
+                                    gridState.scrollToItem(0)
                                 }
                             }
+                        }
                     ) {
                         Icon(
                             imageVector = if (gridState.canScrollForward) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
@@ -384,7 +367,6 @@ fun MainDatabaseScreen(
                     }
                 }
 
-                // A-Z
                 item {
                     val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
                     Surface(
@@ -422,7 +404,6 @@ fun MainDatabaseScreen(
                     }
                 }
 
-                // Dynamic tags
                 items(uiState.allTags, key = { it }) { tag ->
                     val isSelected = uiState.selectedTag.equals(tag, ignoreCase = true)
                     Surface(
@@ -443,7 +424,6 @@ fun MainDatabaseScreen(
                     }
                 }
 
-                // All
                 item {
                     val isAllSelected = uiState.selectedTag.equals("all", ignoreCase = true)
                     Surface(
@@ -464,7 +444,6 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Toast
         AnimatedVisibility(
             visible = uiState.saveNotification != null,
             enter = slideInVertically { -it } + fadeIn(),
@@ -486,7 +465,6 @@ fun MainDatabaseScreen(
         }
     }
 
-    // Dialogs
     if (isAddingNew) {
         AddEditEntryDialog(
             initialEntry = null,
