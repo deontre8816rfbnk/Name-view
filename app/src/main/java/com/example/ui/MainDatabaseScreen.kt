@@ -56,9 +56,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateSet
-import androidx.compose.runtime.toMutableStateSet
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -103,7 +100,7 @@ fun MainDatabaseScreen(
 
     // Multi-select
     var selectionMode by remember { mutableStateOf(false) }
-    val selectedIds = remember { mutableStateOf(setOf<String>()) }
+    var selectedKeys by remember { mutableStateOf(setOf<String>()) }
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -135,7 +132,7 @@ fun MainDatabaseScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (selectionMode) "${selectedIds.size} selected" else "Main Database",
+                    text = if (selectionMode) "${selectedKeys.size} selected" else "Main Database",
                     fontFamily = LexendFontFamily,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 24.sp,
@@ -158,7 +155,7 @@ fun MainDatabaseScreen(
                         color = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.clickable {
                             selectionMode = false
-                            selectedIds.value = emptySet()
+                            selectedKeys = emptySet()
                         }
                     )
                 }
@@ -239,19 +236,22 @@ fun MainDatabaseScreen(
                             val key = entryKey(entry)
                             DatabaseCard(
                                 entry = entry,
-                                isSelected = selectedIds.value.contains(key),
+                                isSelected = selectedKeys.contains(key),
                                 onClick = {
                                     if (selectionMode) {
-                                        if (selectedIds.value.contains(key)) selectedIds.value = selectedIds.value - key)
-                                        else selectedIds.value = selectedIds.value + key)
-                                        if (selectedIds.value.isEmpty()) selectionMode = false
+                                        selectedKeys = if (selectedKeys.contains(key)) {
+                                            selectedKeys - key
+                                        } else {
+                                            selectedKeys + key
+                                        }
+                                        if (selectedKeys.isEmpty()) selectionMode = false
                                     } else {
                                         entryToEdit = entry
                                     }
                                 },
                                 onLongClick = {
                                     selectionMode = true
-                                    selectedIds.value = selectedIds.value + key)
+                                    selectedKeys = selectedKeys + key
                                 },
                                 onTagClick = { onTagSelect(it) }
                             )
@@ -269,7 +269,7 @@ fun MainDatabaseScreen(
                 .navigationBarsPadding()
         ) {
             // Multi-select action bar
-            if (selectionMode && selectedIds.isNotEmpty()) {
+            if (selectionMode && selectedKeys.isNotEmpty()) {
                 Surface(
                     color = Color(0xFF1A1A1A),
                     modifier = Modifier.fillMaxWidth()
@@ -281,11 +281,10 @@ fun MainDatabaseScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Copy as bullet list
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(onClick = {
                                 val names = filteredList
-                                    .filter { selectedIds.value.contains(entryKey(it)) }
+                                    .filter { selectedKeys.contains(entryKey(it)) }
                                     .joinToString("\n") { "• ${it.displayName}" }
                                 clipboardManager.setText(AnnotatedString(names))
                             }) {
@@ -294,13 +293,12 @@ fun MainDatabaseScreen(
                             Text("Copy", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
                         }
 
-                        // Delete selected
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(onClick = {
                                 filteredList
-                                    .filter { selectedIds.value.contains(entryKey(it)) }
+                                    .filter { selectedKeys.contains(entryKey(it)) }
                                     .forEach { onDeleteEntry(it) }
-                                selectedIds.value = emptySet()
+                                selectedKeys = emptySet()
                                 selectionMode = false
                             }) {
                                 Icon(Icons.Default.Delete, null, tint = Color(0xFFEF4444))
@@ -308,11 +306,8 @@ fun MainDatabaseScreen(
                             Text("Remove", fontSize = 11.sp, color = Color(0xFFEF4444), fontFamily = LexendFontFamily)
                         }
 
-                        // Set tag (simple – uses current selected tag or "all")
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            IconButton(onClick = {
-                                // Placeholder – can be extended later with a tag picker
-                            }) {
+                            IconButton(onClick = { /* future tag picker */ }) {
                                 Icon(Icons.Default.Label, null, tint = Color.White)
                             }
                             Text("Tag", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
@@ -354,7 +349,7 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // Tags strip + Jump button (right side)
+            // Tags strip + Jump (right side)
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -363,9 +358,8 @@ fun MainDatabaseScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 reverseLayout = true
             ) {
-                // Jump to top / bottom
+                // Jump button
                 item {
-                    val atBottom = gridState.canScrollForward.not() && gridState.canScrollBackward
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = Color.White.copy(alpha = 0.10f),
