@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
@@ -36,15 +38,16 @@ import androidx.compose.ui.unit.sp
 import com.example.model.DatabaseEntry
 import com.example.ui.theme.LexendFontFamily
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun DatabaseCard(
     entry: DatabaseEntry,
+    isSelected: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onTagClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Keep expand state local and lightweight
     var isExpanded by remember { mutableStateOf(false) }
 
     Surface(
@@ -52,20 +55,22 @@ fun DatabaseCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.10f),
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.10f),
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF141414)
+        color = if (isSelected) Color(0xFF1E1E1E) else Color(0xFF141414)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            // Name + arrow
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -75,35 +80,44 @@ fun DatabaseCard(
                     text = entry.displayName,
                     fontFamily = LexendFontFamily,
                     fontWeight = FontWeight.Black,
-                    fontSize = 19.sp,
+                    fontSize = 17.sp,
                     color = Color.White,
                     maxLines = 1,
                     modifier = Modifier.weight(1f)
                 )
 
-                IconButton(
-                    onClick = { isExpanded = !isExpanded },
-                    modifier = Modifier.size(34.dp)
-                ) {
+                if (isSelected) {
                     Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.55f),
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
+                } else {
+                    IconButton(
+                        onClick = { isExpanded = !isExpanded },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.55f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
-            // Tags (always visible, small)
+            // Tags
             if (entry.tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    entry.tags.take(6).forEach { tag ->   // limit to avoid heavy composition
+                    entry.tags.take(4).forEach { tag ->
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = Color.White.copy(alpha = 0.07f),
                             modifier = Modifier.clickable { onTagClick(tag) }
                         ) {
@@ -113,34 +127,34 @@ fun DatabaseCard(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 11.sp,
                                 color = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
                     }
                 }
             }
 
-            // Expanded: ID + Description
-            AnimatedVisibility(visible = isExpanded) {
+            // Expanded
+            AnimatedVisibility(visible = isExpanded && !isSelected) {
                 Column {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (entry.id.isNotBlank()) {
                         Text(
                             text = "ID: ${entry.id}",
                             fontFamily = LexendFontFamily,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = Color.White.copy(alpha = 0.5f)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
                     }
                     if (entry.description.isNotBlank()) {
                         Text(
                             text = entry.description,
                             fontFamily = LexendFontFamily,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
                             color = Color.White.copy(alpha = 0.7f),
-                            maxLines = 4
+                            maxLines = 3
                         )
                     }
                 }

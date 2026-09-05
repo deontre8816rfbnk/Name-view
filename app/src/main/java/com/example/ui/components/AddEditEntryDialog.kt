@@ -1,7 +1,6 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -66,15 +65,15 @@ fun AddEditEntryDialog(
     val isEdit = initialEntry != null
 
     var name by remember { mutableStateOf(initialEntry?.name ?: "") }
+    var isEditingName by remember { mutableStateOf(!isEdit) } // when adding, name is editable by default
     var customId by remember { mutableStateOf(initialEntry?.id ?: "") }
     var description by remember { mutableStateOf(initialEntry?.description ?: "") }
-    var tags = remember { mutableStateListOf<String>().apply { addAll(initialEntry?.tags ?: emptyList()) } }
+    val tags = remember { mutableStateListOf<String>().apply { addAll(initialEntry?.tags ?: emptyList()) } }
     var newTag by remember { mutableStateOf("") }
     var customDate by remember { mutableStateOf("") }
     var size by remember { mutableStateOf("MD") }
     var color by remember { mutableStateOf("") }
 
-    // Stats
     var speed by remember { mutableStateOf("0.00") }
     var defense by remember { mutableStateOf("0.00") }
     var attack by remember { mutableStateOf("0.00") }
@@ -110,7 +109,7 @@ fun AddEditEntryDialog(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                // Header
+                // Header – Name + Edit icon (NO X button)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -118,15 +117,34 @@ fun AddEditEntryDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = if (isEdit) initialEntry?.displayName ?: "Edit Name" else "New Name",
-                        fontFamily = LexendFontFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 22.sp,
-                        color = Color.White
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.7f))
+                    if (isEditingName) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            placeholder = { Text("Enter the name...", color = Color.White.copy(alpha = 0.35f)) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = fieldColors,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        Text(
+                            text = name.ifBlank { "Edit Name" },
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                            color = Color.White,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Edit icon for the name
+                    IconButton(onClick = { isEditingName = !isEditingName }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit name",
+                            tint = Color.White.copy(alpha = 0.75f)
+                        )
                     }
                 }
 
@@ -137,22 +155,8 @@ fun AddEditEntryDialog(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp)
                 ) {
-                    // ===== IDENTITY =====
+                    // IDENTITY
                     SectionTitle("IDENTITY")
-
-                    if (!isEdit) {
-                        FieldLabel("NAME")
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            placeholder = { Text("Enter the name...", color = Color.White.copy(alpha = 0.35f)) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = fieldColors,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(14.dp))
-                    }
 
                     FieldLabel("CUSTOM ID")
                     OutlinedTextField(
@@ -210,7 +214,10 @@ fun AddEditEntryDialog(
                     }
                     if (tags.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             tags.forEach { tag ->
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
@@ -222,7 +229,11 @@ fun AddEditEntryDialog(
                                     ) {
                                         Text(tag, fontFamily = LexendFontFamily, fontSize = 13.sp, color = Color.White)
                                         Spacer(Modifier.width(4.dp))
-                                        Text("×", color = Color.White.copy(alpha = 0.6f), modifier = Modifier.clickable { tags.remove(tag) })
+                                        Text(
+                                            "×",
+                                            color = Color.White.copy(alpha = 0.6f),
+                                            modifier = Modifier.clickable { tags.remove(tag) }
+                                        )
                                     }
                                 }
                             }
@@ -234,7 +245,6 @@ fun AddEditEntryDialog(
                     OutlinedTextField(
                         value = customDate,
                         onValueChange = { customDate = it },
-                        placeholder = { Text("", color = Color.White.copy(alpha = 0.35f)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = fieldColors,
@@ -243,7 +253,7 @@ fun AddEditEntryDialog(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // ===== APPEARANCE =====
+                    // APPEARANCE
                     SectionTitle("APPEARANCE")
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -293,7 +303,7 @@ fun AddEditEntryDialog(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // ===== STATS =====
+                    // STATS
                     SectionTitle("STATS (0.00 – 99.99)")
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         StatField("SPEED", speed, { speed = it }, Modifier.weight(1f), fieldColors)
@@ -315,7 +325,7 @@ fun AddEditEntryDialog(
                     Spacer(Modifier.height(32.dp))
                 }
 
-                // Bottom buttons
+                // Bottom buttons – Delete | Cancel | Save/Update
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -340,7 +350,7 @@ fun AddEditEntryDialog(
 
                     Button(
                         onClick = {
-                            val finalName = if (isEdit) initialEntry!!.name else name.trim()
+                            val finalName = name.trim()
                             if (finalName.isBlank()) return@Button
 
                             val statsStr = listOf(
