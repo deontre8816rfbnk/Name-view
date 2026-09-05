@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +36,11 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
@@ -49,7 +56,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateSet
+import androidx.compose.runtime.toMutableStateSet
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +68,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -71,6 +84,7 @@ import com.example.ui.theme.LexendFontFamily
 import com.example.ui.theme.SuccessGreen
 import com.example.viewmodel.DatabaseUiState
 import com.example.viewmodel.SortOrder
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainDatabaseScreen(
@@ -87,12 +101,20 @@ fun MainDatabaseScreen(
     var entryToEdit by remember { mutableStateOf<DatabaseEntry?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
 
+    // Multi-select
+    var selectionMode by remember { mutableStateOf(false) }
+    val selectedIds = remember { mutableStateOf(setOf<String>()) }
+
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
 
     val filteredList = uiState.filteredEntries
-    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+
+    fun entryKey(e: DatabaseEntry) = e.name + "|" + e.id
 
     Box(
         modifier = modifier
@@ -113,95 +135,86 @@ fun MainDatabaseScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Main Database",
+                    text = if (selectionMode) "${selectedIds.size} selected" else "Main Database",
                     fontFamily = LexendFontFamily,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 26.sp,
+                    fontSize = 24.sp,
                     color = Color.White
                 )
-                Text(
-                    text = "${uiState.entries.size}",
-                    fontFamily = LexendFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
+                if (!selectionMode) {
+                    Text(
+                        text = "${uiState.entries.size}",
+                        fontFamily = LexendFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                } else {
+                    Text(
+                        text = "Cancel",
+                        fontFamily = LexendFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.clickable {
+                            selectionMode = false
+                            selectedIds.value = emptySet()
+                        }
+                    )
+                }
             }
 
-            // Search field
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = onSearchChange,
-                placeholder = {
-                    Text(
-                        "Search names, tags...",
-                        fontFamily = LexendFontFamily,
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.4f)
-                    )
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
-                },
-                trailingIcon = {
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+            // Search
+            if (!selectionMode) {
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = onSearchChange,
+                    placeholder = {
+                        Text("Search names, tags...", fontFamily = LexendFontFamily, fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f))
+                    },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.6f)) },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchChange("") }) {
+                                Icon(Icons.Default.Clear, null, tint = Color.White.copy(alpha = 0.6f))
+                            }
                         }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White.copy(alpha = 0.3f),
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .focusRequester(focusRequester)
-            )
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.White.copy(alpha = 0.3f),
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color.White,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .focusRequester(focusRequester)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Content
+            // Content – 2 columns
             when {
                 uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = AccentTeal)
                     }
                 }
                 filteredList.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxWidth().weight(1f).padding(24.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Storage,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Icon(Icons.Default.Storage, null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
+                            Spacer(Modifier.height(12.dp))
                             Text(
-                                text = if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all")
-                                    "No matching names" else "No names yet",
+                                if (uiState.searchQuery.isNotBlank() || uiState.selectedTag != "all") "No matching names" else "No names yet",
                                 fontFamily = LexendFontFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp,
@@ -211,21 +224,35 @@ fun MainDatabaseScreen(
                     }
                 }
                 else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 160.dp),
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        state = gridState,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 180.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(
                             items = filteredList,
-                            key = { it.name + "|" + it.id }
+                            key = { entryKey(it) }
                         ) { entry ->
+                            val key = entryKey(entry)
                             DatabaseCard(
                                 entry = entry,
-                                onClick = { entryToEdit = entry },
+                                isSelected = selectedIds.value.contains(key),
+                                onClick = {
+                                    if (selectionMode) {
+                                        if (selectedIds.value.contains(key)) selectedIds.value = selectedIds.value - key)
+                                        else selectedIds.value = selectedIds.value + key)
+                                        if (selectedIds.value.isEmpty()) selectionMode = false
+                                    } else {
+                                        entryToEdit = entry
+                                    }
+                                },
+                                onLongClick = {
+                                    selectionMode = true
+                                    selectedIds.value = selectedIds.value + key)
+                                },
                                 onTagClick = { onTagSelect(it) }
                             )
                         }
@@ -241,56 +268,135 @@ fun MainDatabaseScreen(
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // FABs
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        focusRequester.requestFocus()
-                        keyboardController?.show()
-                    },
-                    containerColor = Color(0xFF1C1C1C),
-                    contentColor = Color.White,
-                    elevation = FloatingActionButtonDefaults.elevation(4.dp),
-                    modifier = Modifier.size(52.dp)
+            // Multi-select action bar
+            if (selectionMode && selectedIds.isNotEmpty()) {
+                Surface(
+                    color = Color(0xFF1A1A1A),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(24.dp))
-                }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Copy as bullet list
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(onClick = {
+                                val names = filteredList
+                                    .filter { selectedIds.value.contains(entryKey(it)) }
+                                    .joinToString("\n") { "• ${it.displayName}" }
+                                clipboardManager.setText(AnnotatedString(names))
+                            }) {
+                                Icon(Icons.Default.ContentCopy, null, tint = Color.White)
+                            }
+                            Text("Copy", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                        }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                        // Delete selected
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(onClick = {
+                                filteredList
+                                    .filter { selectedIds.value.contains(entryKey(it)) }
+                                    .forEach { onDeleteEntry(it) }
+                                selectedIds.value = emptySet()
+                                selectionMode = false
+                            }) {
+                                Icon(Icons.Default.Delete, null, tint = Color(0xFFEF4444))
+                            }
+                            Text("Remove", fontSize = 11.sp, color = Color(0xFFEF4444), fontFamily = LexendFontFamily)
+                        }
 
-                FloatingActionButton(
-                    onClick = { isAddingNew = true },
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                    elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(28.dp))
+                        // Set tag (simple – uses current selected tag or "all")
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(onClick = {
+                                // Placeholder – can be extended later with a tag picker
+                            }) {
+                                Icon(Icons.Default.Label, null, tint = Color.White)
+                            }
+                            Text("Tag", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                        }
+                    }
                 }
             }
 
-            // Tags under the FABs
+            // FABs
+            if (!selectionMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    FloatingActionButton(
+                        onClick = {
+                            focusRequester.requestFocus()
+                            keyboardController?.show()
+                        },
+                        containerColor = Color(0xFF1C1C1C),
+                        contentColor = Color.White,
+                        elevation = FloatingActionButtonDefaults.elevation(4.dp),
+                        modifier = Modifier.size(52.dp)
+                    ) {
+                        Icon(Icons.Default.Search, null, modifier = Modifier.size(24.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    FloatingActionButton(
+                        onClick = { isAddingNew = true },
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(28.dp))
+                    }
+                }
+            }
+
+            // Tags strip + Jump button (right side)
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                    .padding(bottom = 10.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 reverseLayout = true
             ) {
+                // Jump to top / bottom
+                item {
+                    val atBottom = gridState.canScrollForward.not() && gridState.canScrollBackward
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White.copy(alpha = 0.10f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable {
+                                scope.launch {
+                                    if (gridState.canScrollForward) {
+                                        gridState.animateScrollToItem(filteredList.lastIndex.coerceAtLeast(0))
+                                    } else {
+                                        gridState.animateScrollToItem(0)
+                                    }
+                                }
+                            }
+                    ) {
+                        Icon(
+                            imageVector = if (gridState.canScrollForward) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Jump",
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(10.dp).size(18.dp)
+                        )
+                    }
+                }
+
+                // A-Z
                 item {
                     val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSortActive) AccentTeal else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { onToggleSort() }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onToggleSort() }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -298,17 +404,17 @@ fun MainDatabaseScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = when (uiState.sortOrder) {
+                                when (uiState.sortOrder) {
                                     SortOrder.ORIGINAL -> Icons.Default.SortByAlpha
                                     SortOrder.A_TO_Z -> Icons.Default.ArrowUpward
                                     SortOrder.Z_TO_A -> Icons.Default.ArrowDownward
                                 },
-                                contentDescription = null,
+                                null,
                                 tint = if (isSortActive) Color.White else Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(15.dp)
                             )
                             Text(
-                                text = when (uiState.sortOrder) {
+                                when (uiState.sortOrder) {
                                     SortOrder.ORIGINAL -> "A-Z"
                                     SortOrder.A_TO_Z -> "A→Z"
                                     SortOrder.Z_TO_A -> "Z→A"
@@ -322,19 +428,18 @@ fun MainDatabaseScreen(
                     }
                 }
 
+                // Dynamic tags
                 items(uiState.allTags, key = { it }) { tag ->
                     val isSelected = uiState.selectedTag.equals(tag, ignoreCase = true)
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable {
-                                if (isSelected) onTagSelect("all") else onTagSelect(tag)
-                            }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable {
+                            if (isSelected) onTagSelect("all") else onTagSelect(tag)
+                        }
                     ) {
                         Text(
-                            text = tag,
+                            tag,
                             fontFamily = LexendFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -344,17 +449,16 @@ fun MainDatabaseScreen(
                     }
                 }
 
+                // All
                 item {
                     val isAllSelected = uiState.selectedTag.equals("all", ignoreCase = true)
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isAllSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { onTagSelect("all") }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onTagSelect("all") }
                     ) {
                         Text(
-                            text = "All",
+                            "All",
                             fontFamily = LexendFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -366,35 +470,22 @@ fun MainDatabaseScreen(
             }
         }
 
-        // Save notification
+        // Toast
         AnimatedVisibility(
             visible = uiState.saveNotification != null,
             enter = slideInVertically { -it } + fadeIn(),
             exit = slideOutVertically { -it } + fadeOut(),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(top = 8.dp)
+            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp)
         ) {
             uiState.saveNotification?.let { msg ->
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFF1C1C1C),
-                    shadowElevation = 8.dp
-                ) {
+                Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF1C1C1C), shadowElevation = 8.dp) {
                     Row(
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
-                        Text(
-                            text = msg,
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            color = Color.White
-                        )
+                        Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
+                        Text(msg, fontFamily = LexendFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
                     }
                 }
             }
