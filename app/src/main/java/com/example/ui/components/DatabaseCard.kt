@@ -71,6 +71,7 @@ fun DatabaseCard(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
+            // Name + expand / selected indicator
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -108,36 +109,11 @@ fun DatabaseCard(
                 }
             }
 
-            // Tags
-            if (entry.tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    entry.tags.take(4).forEach { tag ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color.White.copy(alpha = 0.07f),
-                            modifier = Modifier.clickable { onTagClick(tag) }
-                        ) {
-                            Text(
-                                text = tag,
-                                fontFamily = LexendFontFamily,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Expanded
+            // Expanded content: description + tags + id
             AnimatedVisibility(visible = isExpanded && !isSelected) {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
+
                     if (entry.id.isNotBlank()) {
                         Text(
                             text = "ID: ${entry.id}",
@@ -145,17 +121,44 @@ fun DatabaseCard(
                             fontSize = 11.sp,
                             color = Color.White.copy(alpha = 0.5f)
                         )
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
+
                     if (entry.description.isNotBlank()) {
                         Text(
                             text = entry.description,
                             fontFamily = LexendFontFamily,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            color = Color.White.copy(alpha = 0.7f),
-                            maxLines = 3
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            color = Color.White.copy(alpha = 0.75f),
+                            maxLines = 4
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
+                    // Tags only appear when expanded
+                    if (entry.tags.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            entry.tags.forEach { tag ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.08f),
+                                    modifier = Modifier.clickable { onTagClick(tag) }
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        fontFamily = LexendFontFamily,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 11.sp,
+                                        color = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
