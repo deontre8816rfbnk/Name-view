@@ -40,47 +40,135 @@ data class DatabaseUiState(
             val tagSet = mutableSetOf<String>()
             for (entry in entries) {
                 for (tag in entry.tags) {
-                    if (tag.isNotBlank()) {
-                        tagSet.add(tag.trim())
-                    }
+                    if (tag.isNotBlank()) tagSet.add(tag.trim())
                 }
             }
             return tagSet.sortedWith(String.CASE_INSENSITIVE_ORDER)
         }
 
+    /**
+     * Advanced search supporting:
+     * - plain text (name, id, description, tags, extraFields)
+     * - stat names → rank by that stat descending (e.g. "strength")
+     * - "overall" → rank by overall
+     * - position / size values
+     * - comma combinations: "CMF, LG, strength"
+     */
     val filteredEntries: List<DatabaseEntry>
         get() {
             var list = entries
 
-            // Filter by search query
-            if (searchQuery.isNotBlank()) {
-                val q = searchQuery.trim().lowercase(Locale.getDefault())
-                list = list.filter { entry ->
-                    entry.name.lowercase(Locale.getDefault()).contains(q) ||
-                    entry.id.lowercase(Locale.getDefault()).contains(q) ||
-                    entry.description.lowercase(Locale.getDefault()).contains(q) ||
-                    entry.stats.lowercase(Locale.getDefault()).contains(q) ||
-                    entry.tags.any { it.lowercase(Locale.getDefault()).contains(q) } ||
-                    entry.extraFields.values.any { it.lowercase(Locale.getDefault()).contains(q) }
-                }
-            }
-
-            // Filter by tag
+            // Tag filter first
             if (!selectedTag.equals("all", ignoreCase = true)) {
                 list = list.filter { entry ->
                     entry.tags.any { it.equals(selectedTag, ignoreCase = true) }
                 }
             }
 
-            // Sort
-            list = when (sortOrder) {
-                SortOrder.ORIGINAL -> list
-                SortOrder.A_TO_Z -> list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-                SortOrder.Z_TO_A -> list.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+            val rawQuery = searchQuery.trim()
+            if (rawQuery.isNotBlank()) {
+                // Split by comma for combinations
+                val parts = rawQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+                var rankingStat: String? = null
+
+                for (part in parts) {
+                    val q = part.lowercase(Locale.getDefault())
+
+                    when {
+                        // Rank by a specific stat
+                        q in STAT_KEYS -> {
+                            rankingStat = q
+                            // Keep all for now; we will sort later
+                        }
+                        q == "overall" -> {
+                            rankingStat = "overall"
+                        }
+                        // Position filter
+                        q in POSITIONS -> {
+                            list = list.filter { entry ->
+                                entry.extraFields["Position"]?.equals(part, ignoreCase = true) == true ||
+                                entry.extraFields["POSITION"]?.equals(part, ignoreCase = true) == true ||
+                                entry.stats.lowercase().contains("position:$q")
+                            }
+                        }
+                        // Size filter
+                        q in SIZES -> {
+                            list = list.filter { entry ->
+                                entry.extraFields["Size"]?.equals(part, ignoreCase = true) == true ||
+                                entry.extraFields["SIZE"]?.equals(part, ignoreCase = true) == true
+                            }
+                        }
+                        // General text search
+                        else -> {
+                            list = list.filter { entry ->
+                                entry.name.lowercase(Locale.getDefault()).contains(q) ||
+                                entry.id.lowercase(Locale.getDefault()).contains(q) ||
+                                entry.description.lowercase(Locale.getDefault()).contains(q) ||
+                                entry.stats.lowercase(Locale.getDefault()).contains(q) ||
+                                entry.tags.any { it.lowercase(Locale.getDefault()).contains(q) } ||
+                                entry.extraFields.values.any { it.lowercase(Locale.getDefault()).contains(q) }
+                            }
+                        }
+                    }
+                }
+
+                // If a ranking stat was requested, sort by that stat descending
+                if (rankingStat != null) {
+                    list = list.sortedByDescending { entry ->
+                        extractStat(entry, rankingStat!!)
+                    }
+                }
+            }
+
+            // Final A-Z / Z-A sort (only if no ranking was applied)
+            if (searchQuery.isBlank() || !containsStatKeyword(searchQuery)) {
+                list = when (sortOrder) {
+                    SortOrder.ORIGINAL -> list
+                    SortOrder.A_TO_Z -> list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                    SortOrder.Z_TO_A -> list.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                }
             }
 
             return list
         }
+
+    companion object {
+        private val STAT_KEYS = setOf(
+            "speed", "defense", "attack", "strength",
+            "resistance", "flexibility", "iq", "overall"
+        )
+        private val POSITIONS = setOf(
+            "gk", "cb", "lb", "rb", "dmf", "cmf", "amf",
+            "lmf", "rmf", "lwf", "rwf", "ss", "cf"
+        )
+        private val SIZES = setOf("sm", "md", "lg", "xl")
+
+        private fun extractStat(entry: DatabaseEntry, key: String): Float {
+            val upper = key.uppercase()
+            // Try stats string first
+            val fromStats = entry.stats.split(",", ";")
+                .map { it.trim() }
+                .firstOrNull { it.uppercase().startsWith("$upper:") }
+                ?.substringAfter(":")
+                ?.trim()
+                ?.toFloatOrNull()
+            if (fromStats != null) return fromStats
+
+            // Fallback overall calculation if needed
+            if (key == "overall") {
+                val values = listOf("SPEED", "DEFENSE", "ATTACK", "STRENGTH", "RESISTANCE", "FLEXIBILITY", "IQ")
+                    .map { extractStat(entry, it.lowercase()) }
+                return values.average().toFloat()
+            }
+            return 0f
+        }
+
+        private fun containsStatKeyword(query: String): Boolean {
+            val lower = query.lowercase()
+            return STAT_KEYS.any { lower.contains(it) }
+        }
+    }
 }
 
 class MainDatabaseViewModel(application: Application) : AndroidViewModel(application) {
@@ -201,7 +289,6 @@ class MainDatabaseViewModel(application: Application) : AndroidViewModel(applica
             )
 
             if (success) {
-                // Reload from file to ensure columns and structure are synced
                 when (val result = repository.loadEntries(uri)) {
                     is ParseResult.Success -> {
                         _uiState.update {
@@ -234,7 +321,6 @@ class MainDatabaseViewModel(application: Application) : AndroidViewModel(applica
                 }
             }
 
-            // Auto dismiss notification after 3 seconds
             delay(3000)
             _uiState.update { it.copy(saveNotification = null) }
         }
