@@ -451,7 +451,7 @@ private fun DraggableStatField(
     colors: androidx.compose.material3.TextFieldColors
 ) {
     var text by remember(value) { mutableStateOf("%.2f".format(value)) }
-    var dragAccum by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
         FieldLabel(label)
@@ -459,43 +459,46 @@ private fun DraggableStatField(
             OutlinedTextField(
                 value = text,
                 onValueChange = { new ->
-                    text = new
-                    new.toFloatOrNull()?.let { onValueChange(it.coerceIn(0f, 100f)) }
+                    if (!isDragging) {
+                        text = new
+                        new.toFloatOrNull()?.let { onValueChange(it.coerceIn(0f, 100f)) }
+                    }
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = colors,
                 modifier = Modifier.fillMaxWidth()
             )
-            // Invisible drag overlay on the right side for up/down
+            // Continuous vertical drag zone on the right
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .width(48.dp)
+                    .width(56.dp)
                     .fillMaxHeight()
-                    .pointerInput(Unit) {
+                    .pointerInput(value) {
                         detectVerticalDragGestures(
-                            onDragStart = { dragAccum = 0f },
-                            onVerticalDrag = { _, dragAmount ->
-                                dragAccum += dragAmount
-                                // Every ~20px of drag = 1 whole number
-                                if (kotlin.math.abs(dragAccum) >= 20f) {
-                                    val direction = if (dragAccum < 0) 1 else -1
-                                    val newVal = (value + direction).coerceIn(0f, 100f)
-                                    onValueChange(newVal)
-                                    text = "%.2f".format(newVal)
-                                    dragAccum = 0f
-                                }
+                            onDragStart = { isDragging = true },
+                            onDragEnd = { isDragging = false },
+                            onDragCancel = { isDragging = false },
+                            onVerticalDrag = { change, dragAmount ->
+                                change.consume()
+                                // Sensitivity: ~8px = 1 point
+                                val delta = -dragAmount / 8f
+                                val newVal = (value + delta).coerceIn(0f, 100f)
+                                // Snap to whole numbers while dragging
+                                val snapped = newVal.roundToInt().toFloat()
+                                onValueChange(snapped)
+                                text = "%.2f".format(snapped)
                             }
                         )
                     }
             ) {
                 Column(
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.White.copy(alpha = 0.35f), modifier = Modifier.size(16.dp))
-                    Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White.copy(alpha = 0.35f), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
                 }
             }
         }
