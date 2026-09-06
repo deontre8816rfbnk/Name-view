@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleSort = { viewModel.toggleSortOrder() },
                                     onAddEntry = { viewModel.addEntry(it) },
                                     onUpdateEntry = { old, new -> viewModel.updateEntry(old, new) },
+                                    onBatchUpdate = { updates -> viewModel.updateMultipleEntries(updates) },
                                     onDeleteEntry = { viewModel.deleteEntry(it) },
                                     onRefresh = { viewModel.refresh() }
                                 )
