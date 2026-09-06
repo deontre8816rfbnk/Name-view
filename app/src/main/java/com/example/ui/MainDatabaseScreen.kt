@@ -489,14 +489,14 @@ fun MainDatabaseScreen(
             tagCounts = tagCounts,
             onTagClick = { tag ->
                 if (assignTagMode && selectedKeys.isNotEmpty()) {
-                    filteredList
-                        .filter { selectedKeys.contains(entryKey(it)) }
-                        .forEach { entry ->
-                            if (!entry.tags.contains(tag)) {
-                                val updated = entry.copy(tags = entry.tags + tag)
-                                onUpdateEntry(entry, updated)
-                            }
+                    // Collect all selected entries first
+                    val selectedEntries = filteredList.filter { selectedKeys.contains(entryKey(it)) }
+                    selectedEntries.forEach { entry ->
+                        if (!entry.tags.contains(tag)) {
+                            val updated = entry.copy(tags = entry.tags + tag)
+                            onUpdateEntry(entry, updated)
                         }
+                    }
                     selectedKeys = emptySet()
                     selectionMode = false
                 } else {
