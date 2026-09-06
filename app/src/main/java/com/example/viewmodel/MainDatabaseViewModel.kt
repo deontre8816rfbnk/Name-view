@@ -275,6 +275,20 @@ class MainDatabaseViewModel(application: Application) : AndroidViewModel(applica
         saveAndCommit(updatedList, "Deleted \"${entryToDelete.displayName}\" and updated .md file")
     }
 
+
+    fun updateMultipleEntries(updates: List<Pair<DatabaseEntry, DatabaseEntry>>) {
+        if (updates.isEmpty()) return
+        val current = _uiState.value
+        val updatedList = current.entries.toMutableList()
+        updates.forEach { (old, new) ->
+            val index = updatedList.indexOfFirst { it.name == old.name && it.id == old.id }
+            if (index != -1) {
+                updatedList[index] = new
+            }
+        }
+        saveAndCommit(updatedList, "Updated ${updates.size} entries")
+    }
+
     private fun saveAndCommit(newList: List<DatabaseEntry>, successMessage: String) {
         val uri = repository.getLinkedUri() ?: return
         viewModelScope.launch {
