@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -87,6 +89,15 @@ import com.example.viewmodel.DatabaseUiState
 import com.example.viewmodel.SortOrder
 import kotlinx.coroutines.launch
 
+private val SUGGESTION_POOL = listOf(
+    // Positions
+    "GK", "CB", "LB", "RB", "DMF", "CMF", "AMF", "LMF", "RMF", "LWF", "RWF", "SS", "CF",
+    // Sizes
+    "SM", "MD", "LG", "XL",
+    // Stats
+    "Speed", "Defense", "Attack", "Strength", "Resistance", "Flexibility", "IQ", "Overall"
+)
+
 @Composable
 fun MainDatabaseScreen(
     uiState: DatabaseUiState,
@@ -106,7 +117,7 @@ fun MainDatabaseScreen(
     var selectedKeys by remember { mutableStateOf(setOf<String>()) }
 
     var showTagsSheet by remember { mutableStateOf(false) }
-    var assignTagMode by remember { mutableStateOf(false) } // true when opened from multi-select
+    var assignTagMode by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -119,12 +130,19 @@ fun MainDatabaseScreen(
 
     fun entryKey(e: DatabaseEntry) = e.name + "|" + e.id
 
-    // Tag counts for the sheet
     val tagCounts = remember(uiState.entries) {
-        uiState.entries
-            .flatMap { it.tags }
-            .groupingBy { it }
-            .eachCount()
+        uiState.entries.flatMap { it.tags }.groupingBy { it }.eachCount()
+    }
+
+    // Predictive suggestions
+    val suggestions = remember(uiState.searchQuery, uiState.allTags) {
+        val q = uiState.searchQuery.trim().lowercase()
+        if (q.isEmpty()) emptyList()
+        else {
+            val fromPool = SUGGESTION_POOL.filter { it.lowercase().startsWith(q) || it.lowercase().contains(q) }
+            val fromTags = uiState.allTags.filter { it.lowercase().startsWith(q) || it.lowercase().contains(q) }
+            (fromPool + fromTags).distinct().take(8)
+        }
     }
 
     Box(
@@ -175,7 +193,7 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // Search
+            // Search + suggestions
             if (!selectionMode) {
                 OutlinedTextField(
                     value = uiState.searchQuery,
@@ -209,7 +227,49 @@ fun MainDatabaseScreen(
                         .padding(horizontal = 20.dp)
                         .focusRequester(focusRequester)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+
+                // Suggestion chips
+                if (suggestions.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        suggestions.forEach { suggestion ->
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color.White.copy(alpha = 0.10f),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        // Replace the last token or append
+                                        val current = uiState.searchQuery.trim()
+                                        val newQuery = if (current.contains(",")) {
+                                            val parts = current.split(",").map { it.trim() }.toMutableList()
+                                            parts[parts.lastIndex] = suggestion
+                                            parts.joinToString(", ")
+                                        } else {
+                                            suggestion
+                                        }
+                                        onSearchChange(newQuery)
+                                    }
+                            ) {
+                                Text(
+                                    text = suggestion,
+                                    fontFamily = LexendFontFamily,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
 
             // Content
@@ -268,14 +328,13 @@ fun MainDatabaseScreen(
             }
         }
 
-        // ========== BOTTOM AREA ==========
+        // Bottom area
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // Multi-select action bar
             if (selectionMode && selectedKeys.isNotEmpty()) {
                 Surface(color = Color(0xFF1A1A1A), modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -319,28 +378,20 @@ fun MainDatabaseScreen(
                 }
             }
 
-            // Left pinned pills + right FABs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // LEFT: All | A-Z | Jump | Tags
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    // All
                     item {
                         val isAll = uiState.selectedTag.equals("all", true)
-                        BottomPill(
-                            text = "All",
-                            selected = isAll,
-                            onClick = { onTagSelect("all") }
-                        )
+                        BottomPill(text = "All", selected = isAll, onClick = { onTagSelect("all") })
                     }
-                    // A-Z
                     item {
                         val isSortActive = uiState.sortOrder != SortOrder.ORIGINAL
                         BottomPill(
@@ -353,7 +404,6 @@ fun MainDatabaseScreen(
                             onClick = onToggleSort
                         )
                     }
-                    // Jump
                     item {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
@@ -376,20 +426,14 @@ fun MainDatabaseScreen(
                             )
                         }
                     }
-                    // Tags
                     item {
-                        BottomPill(
-                            text = "Tags",
-                            selected = false,
-                            onClick = {
-                                assignTagMode = false
-                                showTagsSheet = true
-                            }
-                        )
+                        BottomPill(text = "Tags", selected = false, onClick = {
+                            assignTagMode = false
+                            showTagsSheet = true
+                        })
                     }
                 }
 
-                // RIGHT: Search + Add FABs
                 if (!selectionMode) {
                     FloatingActionButton(
                         onClick = {
@@ -445,7 +489,6 @@ fun MainDatabaseScreen(
             tagCounts = tagCounts,
             onTagClick = { tag ->
                 if (assignTagMode && selectedKeys.isNotEmpty()) {
-                    // Assign this tag to all selected entries
                     filteredList
                         .filter { selectedKeys.contains(entryKey(it)) }
                         .forEach { entry ->
@@ -469,7 +512,6 @@ fun MainDatabaseScreen(
         )
     }
 
-    // Dialogs
     if (isAddingNew) {
         AddEditEntryDialog(
             initialEntry = null,
@@ -500,11 +542,7 @@ fun MainDatabaseScreen(
 }
 
 @Composable
-private fun BottomPill(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
+private fun BottomPill(text: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
@@ -546,7 +584,6 @@ private fun TagsBottomSheet(
                 color = Color(0xFF121212)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Header
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -590,20 +627,8 @@ private fun TagsBottomSheet(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = tag,
-                                            fontFamily = LexendFontFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 16.sp,
-                                            color = Color.White
-                                        )
-                                        Text(
-                                            text = "$count",
-                                            fontFamily = LexendFontFamily,
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = 14.sp,
-                                            color = Color.White.copy(alpha = 0.55f)
-                                        )
+                                        Text(tag, fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                                        Text("$count", fontFamily = LexendFontFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color.White.copy(alpha = 0.55f))
                                     }
                                 }
                             }
