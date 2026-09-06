@@ -450,43 +450,60 @@ private fun DraggableStatField(
     modifier: Modifier = Modifier,
     colors: androidx.compose.material3.TextFieldColors
 ) {
-    var text by remember(value) { mutableStateOf("%.2f".format(value)) }
+    var text by remember { mutableStateOf("%.2f".format(value)) }
     var isDragging by remember { mutableStateOf(false) }
+    var liveValue by remember { mutableStateOf(value) }
+
+    LaunchedEffect(value, isDragging) {
+        if (!isDragging) {
+            liveValue = value
+            text = "%.2f".format(value)
+        }
+    }
 
     Column(modifier = modifier) {
         FieldLabel(label)
-        Box {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             OutlinedTextField(
                 value = text,
                 onValueChange = { new ->
                     if (!isDragging) {
                         text = new
-                        new.toFloatOrNull()?.let { onValueChange(it.coerceIn(0f, 100f)) }
+                        new.toFloatOrNull()?.let {
+                            onValueChange(it.coerceIn(0f, 100f))
+                        }
                     }
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = colors,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
-            // Continuous vertical drag zone on the right
-            Box(
+            Spacer(Modifier.width(6.dp))
+            // Press and hold this handle, then drag without releasing.
+            // Drag UP = increase, DOWN = decrease. Continuous whole numbers 0..100.
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (isDragging) Color(0xFF10B981) else Color.White.copy(alpha = 0.12f),
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .width(56.dp)
-                    .fillMaxHeight()
-                    .pointerInput(value) {
+                    .size(width = 40.dp, height = 56.dp)
+                    .pointerInput(Unit) {
                         detectVerticalDragGestures(
-                            onDragStart = { isDragging = true },
+                            onDragStart = {
+                                isDragging = true
+                                liveValue = value
+                            },
                             onDragEnd = { isDragging = false },
                             onDragCancel = { isDragging = false },
                             onVerticalDrag = { change, dragAmount ->
                                 change.consume()
-                                // Sensitivity: ~8px = 1 point
+                                // Fast continuous: 8px ≈ 1 point
                                 val delta = -dragAmount / 8f
-                                val newVal = (value + delta).coerceIn(0f, 100f)
-                                // Snap to whole numbers while dragging
-                                val snapped = newVal.roundToInt().toFloat()
+                                liveValue = (liveValue + delta).coerceIn(0f, 100f)
+                                val snapped = liveValue.roundToInt().toFloat()
                                 onValueChange(snapped)
                                 text = "%.2f".format(snapped)
                             }
@@ -494,16 +511,28 @@ private fun DraggableStatField(
                     }
             ) {
                 Column(
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
-                    Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Default.KeyboardArrowUp,
+                        null,
+                        tint = if (isDragging) Color.White else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        null,
+                        tint = if (isDragging) Color.White else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun SectionTitle(text: String) {
