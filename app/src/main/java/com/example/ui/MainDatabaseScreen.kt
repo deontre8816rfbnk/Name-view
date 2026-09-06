@@ -106,6 +106,7 @@ fun MainDatabaseScreen(
     onToggleSort: () -> Unit,
     onAddEntry: (DatabaseEntry) -> Unit,
     onUpdateEntry: (DatabaseEntry, DatabaseEntry) -> Unit,
+    onBatchUpdate: (List<Pair<DatabaseEntry, DatabaseEntry>>) -> Unit = {},
     onDeleteEntry: (DatabaseEntry) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
@@ -489,13 +490,12 @@ fun MainDatabaseScreen(
             tagCounts = tagCounts,
             onTagClick = { tag ->
                 if (assignTagMode && selectedKeys.isNotEmpty()) {
-                    // Collect all selected entries first
                     val selectedEntries = filteredList.filter { selectedKeys.contains(entryKey(it)) }
-                    selectedEntries.forEach { entry ->
-                        if (!entry.tags.contains(tag)) {
-                            val updated = entry.copy(tags = entry.tags + tag)
-                            onUpdateEntry(entry, updated)
-                        }
+                    val updates = selectedEntries
+                        .filter { !it.tags.contains(tag) }
+                        .map { entry -> entry to entry.copy(tags = entry.tags + tag) }
+                    if (updates.isNotEmpty()) {
+                        onBatchUpdate(updates)
                     }
                     selectedKeys = emptySet()
                     selectionMode = false
