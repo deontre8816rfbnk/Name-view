@@ -81,6 +81,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.model.DatabaseEntry
 import com.example.ui.components.AddEditEntryDialog
+import com.example.ui.components.OverviewDialog
 import com.example.ui.components.DatabaseCard
 import com.example.ui.theme.AccentTeal
 import com.example.ui.theme.LexendFontFamily
@@ -113,6 +114,7 @@ fun MainDatabaseScreen(
     modifier: Modifier = Modifier
 ) {
     var entryToEdit by remember { mutableStateOf<DatabaseEntry?>(null) }
+    var overviewEntry by remember { mutableStateOf<DatabaseEntry?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
 
     var selectionMode by remember { mutableStateOf(false) }
@@ -315,7 +317,7 @@ fun MainDatabaseScreen(
                                         selectedKeys = if (selectedKeys.contains(key)) selectedKeys - key else selectedKeys + key
                                         if (selectedKeys.isEmpty()) selectionMode = false
                                     } else {
-                                        entryToEdit = entry
+                                        overviewEntry = entry
                                     }
                                 },
                                 onLongClick = {
@@ -514,10 +516,25 @@ fun MainDatabaseScreen(
         )
     }
 
+    // Overview
+    overviewEntry?.let { entry ->
+        OverviewDialog(
+            entry = entry,
+            onDismiss = { overviewEntry = null },
+            onRequestEdit = {
+                entryToEdit = entry
+                overviewEntry = null
+            }
+        )
+    }
+
     if (isAddingNew) {
         AddEditEntryDialog(
             initialEntry = null,
             existingColumns = uiState.columns,
+            availableNations = uiState.nations,
+            availableClubs = uiState.clubs,
+            availableTags = uiState.allTags,
             onDismiss = { isAddingNew = false },
             onSave = {
                 onAddEntry(it)
@@ -530,6 +547,9 @@ fun MainDatabaseScreen(
         AddEditEntryDialog(
             initialEntry = entry,
             existingColumns = uiState.columns,
+            availableNations = uiState.nations,
+            availableClubs = uiState.clubs,
+            availableTags = uiState.allTags,
             onDismiss = { entryToEdit = null },
             onSave = {
                 onUpdateEntry(entry, it)
@@ -610,11 +630,15 @@ private fun TagsBottomSheet(
                             Text("No tags yet", color = Color.White.copy(alpha = 0.5f), fontFamily = LexendFontFamily)
                         }
                     } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 48.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            items(tagCounts.entries.sortedByDescending { it.value }.toList()) { (tag, count) ->
+                            items(tagCounts.entries.sortedByDescending { it.value }.toList().size) { index ->
+                                val (tag, count) = tagCounts.entries.sortedByDescending { it.value }.toList()[index]
                                 Surface(
                                     shape = RoundedCornerShape(16.dp),
                                     color = Color.White.copy(alpha = 0.08f),
@@ -622,15 +646,14 @@ private fun TagsBottomSheet(
                                         .fillMaxWidth()
                                         .clickable { onTagClick(tag) }
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .padding(horizontal = 14.dp, vertical = 14.dp)
                                     ) {
-                                        Text(tag, fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                                        Text("$count", fontFamily = LexendFontFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color.White.copy(alpha = 0.55f))
+                                        Text(tag, fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                                        Spacer(Modifier.height(4.dp))
+                                        Text("$count", fontFamily = LexendFontFamily, fontWeight = FontWeight.Medium, fontSize = 13.sp, color = Color.White.copy(alpha = 0.55f))
                                     }
                                 }
                             }
