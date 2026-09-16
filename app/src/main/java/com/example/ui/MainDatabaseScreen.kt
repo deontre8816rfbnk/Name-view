@@ -7,6 +7,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -465,7 +468,7 @@ fun MainDatabaseScreen(
                             Column(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .padding(bottom = 60.dp),
+                                    .padding(bottom = 64.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -477,6 +480,7 @@ fun MainDatabaseScreen(
                                     Surface(
                                         shape = RoundedCornerShape(20.dp),
                                         color = Color.White,
+                                        shadowElevation = 6.dp,
                                         modifier = Modifier.clickable {
                                             createEntityType = type
                                             showFabMenu = false
@@ -494,24 +498,34 @@ fun MainDatabaseScreen(
                                 }
                             }
                         }
-                        FloatingActionButton(
-                            onClick = { /* handled by pointerInput */ },
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
-                            elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                        // Working + button: tap = new player, long-press = Club/Coach/Nation menu
+                        Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = Color.White,
+                            shadowElevation = 6.dp,
                             modifier = Modifier
                                 .size(52.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = { showFabMenu = true },
-                                        onTap = {
-                                            if (showFabMenu) showFabMenu = false
-                                            else isAddingNew = true
+                                .combinedClickable(
+                                    onClick = {
+                                        if (showFabMenu) {
+                                            showFabMenu = false
+                                        } else {
+                                            isAddingNew = true
                                         }
-                                    )
-                                }
+                                    },
+                                    onLongClick = {
+                                        showFabMenu = true
+                                    }
+                                )
                         ) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(26.dp))
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -690,7 +704,7 @@ private fun TagsBottomSheet(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(380.dp)
+                    .fillMaxHeight(0.68f)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
                 color = Color(0xFF121212)
             ) {
