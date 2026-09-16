@@ -462,21 +462,27 @@ fun MainDatabaseScreen(
                         Icon(Icons.Default.Search, null, modifier = Modifier.size(22.dp))
                     }
                     Spacer(Modifier.width(10.dp))
+                    // More (Coach / Club / Nation) — does not fight with + click
+                    FloatingActionButton(
+                        onClick = { showFabMenu = !showFabMenu },
+                        containerColor = Color(0xFF1C1C1C),
+                        contentColor = Color.White,
+                        elevation = FloatingActionButtonDefaults.elevation(4.dp),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Text("···", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    // + opens player form immediately
                     FloatingActionButton(
                         onClick = {
-                            if (showFabMenu) showFabMenu = false
-                            else isAddingNew = true
+                            showFabMenu = false
+                            isAddingNew = true
                         },
                         containerColor = Color.White,
                         contentColor = Color.Black,
                         elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                        modifier = Modifier
-                            .size(52.dp)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onLongPress = { showFabMenu = true }
-                                )
-                            }
+                        modifier = Modifier.size(52.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
                     }
