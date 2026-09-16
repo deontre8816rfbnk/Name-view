@@ -574,7 +574,6 @@ fun AddEditEntryDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SimpleDropdown(
     label: String,
@@ -585,19 +584,28 @@ private fun SimpleDropdown(
     allowEmpty: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+    Box {
         OutlinedTextField(
-            value = value,
+            value = value.ifBlank { if (allowEmpty) "— none —" else "" },
             onValueChange = {},
             readOnly = true,
             label = { Text(label, fontFamily = LexendFontFamily) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            trailingIcon = {
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    null,
+                    tint = Color.White.copy(alpha = 0.6f)
+                )
+            },
             colors = colors,
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()
+                .clickable { expanded = !expanded }
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
             options.forEach { option ->
                 DropdownMenuItem(
                     text = {
