@@ -1,5 +1,25 @@
 package com.example.ui.components
 
+import android.content.Intent
+
+import android.graphics.BitmapFactory
+
+import androidx.compose.ui.platform.LocalContext
+
+import androidx.compose.ui.layout.ContentScale
+
+import androidx.compose.ui.graphics.asImageBitmap
+
+import androidx.compose.foundation.layout.aspectRatio
+
+import androidx.compose.foundation.Image
+
+import androidx.activity.result.contract.ActivityResultContracts
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+
+import android.net.Uri
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -129,6 +149,29 @@ fun EntityEditDialog(
     // Nation-specific (player count is calculated later; show stored value)
     var playerCountNote by remember {
         mutableStateOf(initialEntry?.extraFields?.get("PlayerCount") ?: "")
+    }
+
+    // Flag / Logo local URI
+    var imagePath by remember {
+        mutableStateOf(
+            initialEntry?.extraFields?.get("FlagPath")
+                ?: initialEntry?.extraFields?.get("LogoPath")
+                ?: ""
+        )
+    }
+    val context = LocalContext.current
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) { }
+            imagePath = uri.toString()
+        }
     }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
@@ -303,6 +346,13 @@ fun EntityEditDialog(
                             Spacer(Modifier.height(12.dp))
                             Text("CLUB", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
                             Spacer(Modifier.height(8.dp))
+                            ImagePickBlock(
+                                imagePath = imagePath,
+                                label = "Club logo",
+                                onPick = { imagePicker.launch(arrayOf("image/*")) },
+                                onClear = { imagePath = "" }
+                            )
+                            Spacer(Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = teamStrength,
                                 onValueChange = { teamStrength = it },
@@ -334,6 +384,13 @@ fun EntityEditDialog(
                         EntityType.Nation -> {
                             Spacer(Modifier.height(12.dp))
                             Text("NATION", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
+                            Spacer(Modifier.height(8.dp))
+                            ImagePickBlock(
+                                imagePath = imagePath,
+                                label = "Nation flag",
+                                onPick = { imagePicker.launch(arrayOf("image/*")) },
+                                onClear = { imagePath = "" }
+                            )
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 "Player count and position breakdown are calculated from players with this nationality.",
@@ -394,10 +451,11 @@ fun EntityEditDialog(
                                     extra["ClubStarRating"] = clubStarRating
                                     if (teamPlaystyle.isNotBlank()) extra["TeamPlaystyleProficiency"] = teamPlaystyle
                                     extra["CollectiveCondition"] = collectiveCondition
+                                    if (imagePath.isNotBlank()) extra["LogoPath"] = imagePath
                                 }
                                 EntityType.Nation -> {
-                                    // PlayerCount updated by app when players change; keep existing
                                     if (playerCountNote.isNotBlank()) extra["PlayerCount"] = playerCountNote
+                                    if (imagePath.isNotBlank()) extra["FlagPath"] = imagePath
                                 }
                                 else -> {}
                             }
@@ -577,6 +635,57 @@ private fun EntityStatRow(
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
                 Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun ImagePickBlock(
+    imagePath: String,
+    label: String,
+    onPick: () -> Unit,
+    onClear: () -> Unit
+) {
+    val context = LocalContext.current
+    val bitmap = remember(imagePath) {
+        if (imagePath.isBlank()) null
+        else try {
+            context.contentResolver.openInputStream(Uri.parse(imagePath))?.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            }
+        } catch (_: Exception) { null }
+    }
+
+    Column {
+        Text(label, fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
+        Spacer(Modifier.height(6.dp))
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = label,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(96.dp)
+                    .aspectRatio(1f)
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onPick) {
+                    Text("Change", color = Color.White, fontFamily = LexendFontFamily)
+                }
+                TextButton(onClick = onClear) {
+                    Text("Remove", color = Color(0xFFEF4444), fontFamily = LexendFontFamily)
+                }
+            }
+        } else {
+            Button(
+                onClick = onPick,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.12f), contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Insert picture", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
             }
         }
     }

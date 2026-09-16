@@ -1,5 +1,23 @@
 package com.example.ui.components
 
+import androidx.compose.ui.draw.clip
+
+import androidx.compose.runtime.remember
+
+import androidx.compose.ui.platform.LocalContext
+
+import androidx.compose.ui.layout.ContentScale
+
+import androidx.compose.ui.graphics.asImageBitmap
+
+import androidx.compose.foundation.layout.size
+
+import androidx.compose.foundation.Image
+
+import android.net.Uri
+
+import android.graphics.BitmapFactory
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +60,9 @@ import com.example.ui.theme.LexendFontFamily
 fun OverviewDialog(
     entry: DatabaseEntry,
     onDismiss: () -> Unit,
-    onRequestEdit: () -> Unit
+    onRequestEdit: () -> Unit,
+    nationPlayerCount: Int = -1,
+    nationBreakdown: Map<String, Int> = emptyMap()
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -90,6 +110,44 @@ fun OverviewDialog(
                         fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.5f)
                     )
+
+                    // Flag / Logo
+                    val imgPath = entry.extraFields["FlagPath"]
+                        ?: entry.extraFields["LogoPath"]
+                        ?: ""
+                    if (imgPath.isNotBlank()) {
+                        val context = LocalContext.current
+                        val bmp = remember(imgPath) {
+                            try {
+                                context.contentResolver.openInputStream(Uri.parse(imgPath))?.use {
+                                    BitmapFactory.decodeStream(it)
+                                }
+                            } catch (_: Exception) { null }
+                        }
+                        if (bmp != null) {
+                            Spacer(Modifier.height(12.dp))
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(96.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                        }
+                    }
+
+                    // Nation live stats
+                    if (entry.entityType == EntityType.Nation && nationPlayerCount >= 0) {
+                        Spacer(Modifier.height(10.dp))
+                        InfoRow("Players", nationPlayerCount.toString())
+                        if (nationBreakdown.isNotEmpty()) {
+                            InfoRow(
+                                "Positions",
+                                nationBreakdown.entries.joinToString(", ") { "${it.key}: ${it.value}" }
+                            )
+                        }
+                    }
 
                     if (entry.overall > 0f && entry.entityType == EntityType.Player) {
                         Spacer(Modifier.height(6.dp))
