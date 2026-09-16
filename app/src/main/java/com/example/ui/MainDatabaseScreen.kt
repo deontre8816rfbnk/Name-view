@@ -330,7 +330,8 @@ fun MainDatabaseScreen(
                                     selectionMode = true
                                     selectedKeys = selectedKeys + key
                                 },
-                                onTagClick = { onTagSelect(it) }
+                                onTagClick = { onTagSelect(it) },
+                                nationPlayerCount = if (entry.entityType.name == "Nation") uiState.nationPlayerCount(entry.name) else -1
                             )
                         }
                     }
@@ -575,7 +576,9 @@ fun MainDatabaseScreen(
             onRequestEdit = {
                 entryToEdit = entry
                 overviewEntry = null
-            }
+            },
+            nationPlayerCount = if (entry.entityType.name == "Nation") uiState.nationPlayerCount(entry.name) else -1,
+            nationBreakdown = if (entry.entityType.name == "Nation") uiState.nationPositionBreakdown(entry.name) else emptyMap()
         )
     }
 
