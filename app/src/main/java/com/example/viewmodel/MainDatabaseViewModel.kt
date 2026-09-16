@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.MarkdownTableRepository
 import com.example.data.ParseResult
 import com.example.model.DatabaseEntry
+import com.example.model.EntityType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.random.Random
 
 enum class SortOrder {
     ORIGINAL,
@@ -33,7 +35,9 @@ data class DatabaseUiState(
     val selectedTag: String = "all",
     val sortOrder: SortOrder = SortOrder.ORIGINAL,
     val saveNotification: String? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    /** Seed for random feed of 46 cards. Changes when "All" is pressed. */
+    val feedSeed: Long = System.currentTimeMillis()
 ) {
     val allTags: List<String>
         get() {
@@ -46,19 +50,32 @@ data class DatabaseUiState(
             return tagSet.sortedWith(String.CASE_INSENSITIVE_ORDER)
         }
 
+    val nations: List<String>
+        get() = entries
+            .filter { it.entityType == EntityType.Nation }
+            .map { it.displayName }
+            .distinct()
+            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+
+    val clubs: List<String>
+        get() = entries
+            .filter { it.entityType == EntityType.Club }
+            .map { it.displayName }
+            .distinct()
+            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+
     /**
-     * Advanced search supporting:
-     * - plain text (name, id, description, tags, extraFields)
-     * - stat names → rank by that stat descending (e.g. "strength")
-     * - "overall" → rank by overall
-     * - position / size values
-     * - comma combinations: "CMF, LG, strength"
+     * Filtered + ranked list used for the feed / search results.
+     * - Tag filter
+     * - Search (starts-with for single letter, combinations, overall ranking)
+     * - "Highest overall" → top 10
+     * - Default feed: up to 46 random cards when no search/tag
      */
     val filteredEntries: List<DatabaseEntry>
         get() {
             var list = entries
 
-            // Tag filter first
+            // Tag filter
             if (!selectedTag.equals("all", ignoreCase = true)) {
                 list = list.filter { entry ->
                     entry.tags.any { it.equals(selectedTag, ignoreCase = true) }
@@ -66,67 +83,71 @@ data class DatabaseUiState(
             }
 
             val rawQuery = searchQuery.trim()
-            if (rawQuery.isNotBlank()) {
-                // Split by comma for combinations
-                val parts = rawQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            var rankingStat: String? = null
+            var highestOverallOnly = false
 
-                var rankingStat: String? = null
+            if (rawQuery.isNotBlank()) {
+                val parts = rawQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
                 for (part in parts) {
                     val q = part.lowercase(Locale.getDefault())
 
                     when {
-                        // Rank by a specific stat
-                        q in STAT_KEYS -> {
-                            rankingStat = q
-                            // Keep all for now; we will sort later
-                        }
-                        q == "overall" -> {
+                        q == "highest" || q == "highest overall" || q == "highest overall stat" -> {
+                            highestOverallOnly = true
                             rankingStat = "overall"
                         }
-                        // Position filter
+                        q in STAT_KEYS || q == "overall" -> {
+                            rankingStat = if (q == "overall") "overall" else q
+                        }
                         q in POSITIONS -> {
                             list = list.filter { entry ->
-                                entry.extraFields["Position"]?.equals(part, ignoreCase = true) == true ||
-                                entry.extraFields["POSITION"]?.equals(part, ignoreCase = true) == true ||
-                                entry.stats.lowercase().contains("position:$q")
+                                entry.position.equals(part, ignoreCase = true) ||
+                                    entry.secondaryPositions.any { it.equals(part, ignoreCase = true) }
                             }
                         }
-                        // Size filter
-                        q in SIZES -> {
+                        // Single letter → starts with only
+                        q.length == 1 && q[0].isLetter() -> {
                             list = list.filter { entry ->
-                                entry.extraFields["Size"]?.equals(part, ignoreCase = true) == true ||
-                                entry.extraFields["SIZE"]?.equals(part, ignoreCase = true) == true
+                                entry.name.lowercase(Locale.getDefault()).startsWith(q)
                             }
                         }
-                        // General text search
                         else -> {
                             list = list.filter { entry ->
                                 entry.name.lowercase(Locale.getDefault()).contains(q) ||
-                                entry.id.lowercase(Locale.getDefault()).contains(q) ||
-                                entry.description.lowercase(Locale.getDefault()).contains(q) ||
-                                entry.stats.lowercase(Locale.getDefault()).contains(q) ||
-                                entry.tags.any { it.lowercase(Locale.getDefault()).contains(q) } ||
-                                entry.extraFields.values.any { it.lowercase(Locale.getDefault()).contains(q) }
+                                    entry.id.lowercase(Locale.getDefault()).contains(q) ||
+                                    entry.description.lowercase(Locale.getDefault()).contains(q) ||
+                                    entry.stats.lowercase(Locale.getDefault()).contains(q) ||
+                                    entry.tags.any { it.lowercase(Locale.getDefault()).contains(q) } ||
+                                    entry.extraFields.values.any { it.lowercase(Locale.getDefault()).contains(q) }
                             }
                         }
                     }
                 }
 
-                // If a ranking stat was requested, sort by that stat descending
-                if (rankingStat != null) {
-                    list = list.sortedByDescending { entry ->
-                        extractStat(entry, rankingStat!!)
-                    }
+                // Rank by overall (or chosen stat) when relevant
+                if (rankingStat != null || (!highestOverallOnly && rankingStat == null && parts.any { it.lowercase() in POSITIONS || it.lowercase() in STAT_KEYS })) {
+                    val key = rankingStat ?: "overall"
+                    list = list.sortedByDescending { extractOverallOrStat(it, key) }
                 }
+
+                if (highestOverallOnly) {
+                    list = list.sortedByDescending { extractOverallOrStat(it, "overall") }.take(10)
+                }
+            } else if (selectedTag.equals("all", ignoreCase = true) && sortOrder == SortOrder.ORIGINAL) {
+                // Feed mode: random 46
+                list = list.shuffled(Random(feedSeed)).take(46)
             }
 
-            // Final A-Z / Z-A sort (only if no ranking was applied)
-            if (searchQuery.isBlank() || !containsStatKeyword(searchQuery)) {
+            // A-Z / Z-A only when not in ranked / feed-random mode
+            if (rawQuery.isBlank() && !selectedTag.equals("all", ignoreCase = true).not()) {
+                // already handled feed
+            }
+            if (rawQuery.isBlank() && sortOrder != SortOrder.ORIGINAL) {
                 list = when (sortOrder) {
-                    SortOrder.ORIGINAL -> list
                     SortOrder.A_TO_Z -> list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
                     SortOrder.Z_TO_A -> list.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                    else -> list
                 }
             }
 
@@ -135,38 +156,26 @@ data class DatabaseUiState(
 
     companion object {
         private val STAT_KEYS = setOf(
-            "speed", "defense", "attack", "strength",
-            "resistance", "flexibility", "iq", "overall"
+            "speed", "defense", "attack", "strength", "resistance", "flexibility", "iq", "overall",
+            "finishing", "acceleration", "stamina", "dribbling", "heading", "tackling", "aggression"
         )
         private val POSITIONS = setOf(
             "gk", "cb", "lb", "rb", "dmf", "cmf", "amf",
             "lmf", "rmf", "lwf", "rwf", "ss", "cf"
         )
-        private val SIZES = setOf("sm", "md", "lg", "xl")
 
-        private fun extractStat(entry: DatabaseEntry, key: String): Float {
-            val upper = key.uppercase()
-            // Try stats string first
-            val fromStats = entry.stats.split(",", ";")
-                .map { it.trim() }
-                .firstOrNull { it.uppercase().startsWith("$upper:") }
-                ?.substringAfter(":")
-                ?.trim()
-                ?.toFloatOrNull()
-            if (fromStats != null) return fromStats
-
-            // Fallback overall calculation if needed
-            if (key == "overall") {
-                val values = listOf("SPEED", "DEFENSE", "ATTACK", "STRENGTH", "RESISTANCE", "FLEXIBILITY", "IQ")
-                    .map { extractStat(entry, it.lowercase()) }
-                return values.average().toFloat()
+        fun extractOverallOrStat(entry: DatabaseEntry, key: String): Float {
+            if (key.equals("overall", ignoreCase = true)) {
+                val o = entry.overall
+                if (o > 0f) return o
+                // fallback: average of any numeric stats in the stats string
+                val values = entry.stats.split(",", ";")
+                    .mapNotNull {
+                        it.substringAfter(":", "").trim().toFloatOrNull()
+                    }
+                return if (values.isNotEmpty()) values.average().toFloat() else 0f
             }
-            return 0f
-        }
-
-        private fun containsStatKeyword(query: String): Boolean {
-            val lower = query.lowercase()
-            return STAT_KEYS.any { lower.contains(it) }
+            return entry.extractStat(key)
         }
     }
 }
@@ -235,8 +244,21 @@ class MainDatabaseViewModel(application: Application) : AndroidViewModel(applica
         _uiState.update { it.copy(searchQuery = query) }
     }
 
+    /**
+     * Selecting "all" clears search and refreshes the random feed of 46.
+     */
     fun setSelectedTag(tag: String) {
-        _uiState.update { it.copy(selectedTag = tag) }
+        if (tag.equals("all", ignoreCase = true)) {
+            _uiState.update {
+                it.copy(
+                    selectedTag = "all",
+                    searchQuery = "",
+                    feedSeed = System.currentTimeMillis()
+                )
+            }
+        } else {
+            _uiState.update { it.copy(selectedTag = tag) }
+        }
     }
 
     fun toggleSortOrder() {
@@ -253,29 +275,33 @@ class MainDatabaseViewModel(application: Application) : AndroidViewModel(applica
     fun addEntry(newEntry: DatabaseEntry) {
         val current = _uiState.value
         val updatedList = current.entries + newEntry
-        saveAndCommit(updatedList, "Added \"${newEntry.displayName}\" and saved to .md file")
+        saveAndCommit(updatedList, "Added \"${newEntry.displayName}\"")
     }
 
     fun updateEntry(oldEntry: DatabaseEntry, updatedEntry: DatabaseEntry) {
         val current = _uiState.value
-        val index = current.entries.indexOf(oldEntry)
+        val index = current.entries.indexOfFirst {
+            it.name == oldEntry.name && it.id == oldEntry.id
+        }
         val updatedList = if (index != -1) {
             current.entries.toMutableList().apply { set(index, updatedEntry) }
         } else {
-            current.entries.map { if (it.name.equals(oldEntry.name, ignoreCase = true)) updatedEntry else it }
+            current.entries.map {
+                if (it.name.equals(oldEntry.name, ignoreCase = true)) updatedEntry else it
+            }
         }
-        saveAndCommit(updatedList, "Updated \"${updatedEntry.displayName}\" and saved to .md file")
+        saveAndCommit(updatedList, "Updated \"${updatedEntry.displayName}\"")
     }
 
     fun deleteEntry(entryToDelete: DatabaseEntry) {
         val current = _uiState.value
         val updatedList = current.entries.filterNot {
-            it == entryToDelete || (it.name == entryToDelete.name && it.id == entryToDelete.id)
+            it.name == entryToDelete.name && it.id == entryToDelete.id
         }
-        saveAndCommit(updatedList, "Deleted \"${entryToDelete.displayName}\" and updated .md file")
+        saveAndCommit(updatedList, "Deleted \"${entryToDelete.displayName}\"")
     }
 
-
+    /** Batch update (multi-select tag assignment). One save for all. */
     fun updateMultipleEntries(updates: List<Pair<DatabaseEntry, DatabaseEntry>>) {
         if (updates.isEmpty()) return
         val current = _uiState.value
@@ -284,9 +310,21 @@ class MainDatabaseViewModel(application: Application) : AndroidViewModel(applica
             val index = updatedList.indexOfFirst { it.name == old.name && it.id == old.id }
             if (index != -1) {
                 updatedList[index] = new
+            } else {
+                val idx2 = updatedList.indexOfFirst { it.name == old.name }
+                if (idx2 != -1) updatedList[idx2] = new
             }
         }
         saveAndCommit(updatedList, "Updated ${updates.size} entries")
+    }
+
+    /** Batch delete (multi-select). One save for all. */
+    fun deleteMultipleEntries(toDelete: List<DatabaseEntry>) {
+        if (toDelete.isEmpty()) return
+        val keys = toDelete.map { it.name to it.id }.toSet()
+        val current = _uiState.value
+        val updatedList = current.entries.filterNot { (it.name to it.id) in keys }
+        saveAndCommit(updatedList, "Deleted ${toDelete.size} entries")
     }
 
     private fun saveAndCommit(newList: List<DatabaseEntry>, successMessage: String) {
