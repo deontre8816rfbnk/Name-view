@@ -29,17 +29,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -49,7 +45,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -98,8 +93,6 @@ import kotlinx.coroutines.launch
 private val SUGGESTION_POOL = listOf(
     // Positions
     "GK", "CB", "LB", "RB", "DMF", "CMF", "AMF", "LMF", "RMF", "LWF", "RWF", "SS", "CF",
-    // Sizes
-    "SM", "MD", "LG", "XL",
     // Stats
     "Speed", "Defense", "Attack", "Strength", "Resistance", "Flexibility", "IQ", "Overall"
 )
@@ -109,7 +102,7 @@ fun MainDatabaseScreen(
     uiState: DatabaseUiState,
     onSearchChange: (String) -> Unit,
     onTagSelect: (String) -> Unit,
-    onToggleSort: () -> Unit,
+    onToggleSort: () -> Void,
     onAddEntry: (DatabaseEntry) -> Unit,
     onUpdateEntry: (DatabaseEntry, DatabaseEntry) -> Unit,
     onBatchUpdate: (List<Pair<DatabaseEntry, DatabaseEntry>>) -> Unit = {},
@@ -145,7 +138,6 @@ fun MainDatabaseScreen(
         uiState.entries.flatMap { it.tags }.groupingBy { it }.eachCount()
     }
 
-    // Predictive suggestions
     val suggestions = remember(uiState.searchQuery, uiState.allTags) {
         val q = uiState.searchQuery.trim().lowercase()
         if (q.isEmpty()) emptyList()
@@ -239,7 +231,6 @@ fun MainDatabaseScreen(
                         .focusRequester(focusRequester)
                 )
 
-                // Suggestion chips
                 if (suggestions.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -255,7 +246,6 @@ fun MainDatabaseScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(20.dp))
                                     .clickable {
-                                        // Replace the last token or append
                                         val current = uiState.searchQuery.trim()
                                         val newQuery = if (current.contains(",")) {
                                             val parts = current.split(",").map { it.trim() }.toMutableList()
@@ -324,8 +314,8 @@ fun MainDatabaseScreen(
                                         selectedKeys = if (selectedKeys.contains(key)) selectedKeys - key else selectedKeys + key
                                         if (selectedKeys.isEmpty()) selectionMode = false
                                     } else {
-                                        // Open edit dialog with Delete / Cancel / Update
-                                        entryToEdit = entry
+                                        // FIX: Open overview dialog first, not edit
+                                        overviewEntry = entry
                                     }
                                 },
                                 onLongClick = {
@@ -462,71 +452,75 @@ fun MainDatabaseScreen(
                         Icon(Icons.Default.Search, null, modifier = Modifier.size(22.dp))
                     }
                     Spacer(Modifier.width(10.dp))
-                    // More (Coach / Club / Nation) — does not fight with + click
-                    FloatingActionButton(
-                        onClick = { showFabMenu = !showFabMenu },
-                        containerColor = Color(0xFF1C1C1C),
-                        contentColor = Color.White,
-                        elevation = FloatingActionButtonDefaults.elevation(4.dp),
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Text("···", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    // + opens player form immediately
-                    FloatingActionButton(
-                        onClick = {
-                            showFabMenu = false
-                            isAddingNew = true
-                        },
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
-                        elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                        modifier = Modifier.size(52.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
-                    }
-                }
-            }
-        }
-
-
-        // Overlay menu for long-press + (does not move bottom bar)
-        if (showFabMenu) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
-                    .clickable { showFabMenu = false }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 100.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    listOf(
-                        EntityType.Nation to "Nation",
-                        EntityType.Club to "Club",
-                        EntityType.Manager to "Coach"
-                    ).forEach { (type, label) ->
-                        Surface(
-                            shape = RoundedCornerShape(22.dp),
-                            color = Color.White,
-                            shadowElevation = 8.dp,
-                            modifier = Modifier.clickable {
-                                createEntityType = type
+                    
+                    // Main + button (Click to add player, Long press for menu)
+                    Box {
+                        FloatingActionButton(
+                            onClick = {
                                 showFabMenu = false
-                            }
+                                isAddingNew = true
+                            },
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                            modifier = Modifier
+                                .size(52.dp)
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            showFabMenu = !showFabMenu
+                                        }
+                                    )
+                                }
                         ) {
-                            Text(
-                                label,
-                                fontFamily = LexendFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color.Black,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                            Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
+                        }
+
+                        // Animated Vertical Menu for Club/Nation/Coach
+                        AnimatedVisibility(
+                            visible = showFabMenu,
+                            enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
+                            exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(),
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(bottom = 64.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                listOf(
+                                    EntityType.Nation to "Nation",
+                                    EntityType.Club to "Club",
+                                    EntityType.Manager to "Coach"
+                                ).forEach { (type, label) ->
+                                    Surface(
+                                        shape = RoundedCornerShape(22.dp),
+                                        color = Color.White,
+                                        shadowElevation = 8.dp,
+                                        modifier = Modifier.clickable {
+                                            createEntityType = type
+                                            showFabMenu = false
+                                        }
+                                    ) {
+                                        Text(
+                                            label,
+                                            fontFamily = LexendFontFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color.Black,
+                                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Invisible scrim to close menu when tapping outside
+                        if (showFabMenu) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable { showFabMenu = false }
                             )
                         }
                     }
@@ -584,7 +578,7 @@ fun MainDatabaseScreen(
         )
     }
 
-    // Overview
+    // Overview Dialog
     overviewEntry?.let { entry ->
         OverviewDialog(
             entry = entry,
@@ -598,6 +592,7 @@ fun MainDatabaseScreen(
         )
     }
 
+    // Create Entity Dialog (Club/Nation/Coach)
     createEntityType?.let { type ->
         EntityEditDialog(
             entityType = type,
@@ -612,7 +607,8 @@ fun MainDatabaseScreen(
         )
     }
 
-        if (isAddingNew) {
+    // Add New Player Dialog
+    if (isAddingNew) {
         AddEditEntryDialog(
             initialEntry = null,
             existingColumns = uiState.columns,
@@ -627,6 +623,7 @@ fun MainDatabaseScreen(
         )
     }
 
+    // Edit Existing Dialogs
     entryToEdit?.let { entry ->
         when (entry.entityType) {
             EntityType.Player -> {
