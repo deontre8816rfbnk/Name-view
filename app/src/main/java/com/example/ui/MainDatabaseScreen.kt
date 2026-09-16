@@ -453,15 +453,7 @@ fun MainDatabaseScreen(
                     Spacer(Modifier.width(10.dp))
                     
                     // Main + button (Click to add player, Long press for menu)
-                    Box(
-                        modifier = Modifier.pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = {
-                                    showFabMenu = !showFabMenu
-                                }
-                            )
-                        }
-                    ) {
+                    Box {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -510,7 +502,15 @@ fun MainDatabaseScreen(
                                 containerColor = Color.White,
                                 contentColor = Color.Black,
                                 elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                                modifier = Modifier.size(52.dp)
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                showFabMenu = !showFabMenu
+                                            }
+                                        )
+                                    }
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
                             }
