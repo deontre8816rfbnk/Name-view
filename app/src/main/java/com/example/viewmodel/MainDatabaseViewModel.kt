@@ -64,6 +64,25 @@ data class DatabaseUiState(
             .distinct()
             .sortedWith(String.CASE_INSENSITIVE_ORDER)
 
+    /** Live player count for a nation name. */
+    fun nationPlayerCount(nationName: String): Int {
+        return entries.count {
+            it.entityType == EntityType.Player &&
+                it.nationality.equals(nationName, ignoreCase = true)
+        }
+    }
+
+    /** Position breakdown map for a nation. */
+    fun nationPositionBreakdown(nationName: String): Map<String, Int> {
+        return entries
+            .filter {
+                it.entityType == EntityType.Player &&
+                    it.nationality.equals(nationName, ignoreCase = true)
+            }
+            .groupBy { it.position.ifBlank { "?" } }
+            .mapValues { it.value.size }
+    }
+
     /**
      * Filtered + ranked list used for the feed / search results.
      * - Tag filter
