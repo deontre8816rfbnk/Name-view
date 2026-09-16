@@ -7,8 +7,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -498,25 +496,22 @@ fun MainDatabaseScreen(
                                 }
                             }
                         }
-                        // Working + button: tap = new player, long-press = Club/Coach/Nation menu
+                        // Tap = new player; long-press = Club/Coach/Nation menu (stable APIs only)
                         Surface(
                             shape = androidx.compose.foundation.shape.CircleShape,
                             color = Color.White,
                             shadowElevation = 6.dp,
                             modifier = Modifier
                                 .size(52.dp)
-                                .combinedClickable(
-                                    onClick = {
-                                        if (showFabMenu) {
-                                            showFabMenu = false
-                                        } else {
-                                            isAddingNew = true
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = { showFabMenu = true },
+                                        onTap = {
+                                            if (showFabMenu) showFabMenu = false
+                                            else isAddingNew = true
                                         }
-                                    },
-                                    onLongClick = {
-                                        showFabMenu = true
-                                    }
-                                )
+                                    )
+                                }
                         ) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
