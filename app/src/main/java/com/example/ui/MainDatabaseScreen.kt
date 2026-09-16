@@ -108,6 +108,7 @@ fun MainDatabaseScreen(
     onUpdateEntry: (DatabaseEntry, DatabaseEntry) -> Unit,
     onBatchUpdate: (List<Pair<DatabaseEntry, DatabaseEntry>>) -> Unit = {},
     onDeleteEntry: (DatabaseEntry) -> Unit,
+    onDeleteMultiple: (List<DatabaseEntry>) -> Unit = {},
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -356,9 +357,10 @@ fun MainDatabaseScreen(
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(onClick = {
-                                filteredList
-                                    .filter { selectedKeys.contains(entryKey(it)) }
-                                    .forEach { onDeleteEntry(it) }
+                                val toDelete = filteredList.filter { selectedKeys.contains(entryKey(it)) }
+                                if (toDelete.isNotEmpty()) {
+                                    onDeleteMultiple(toDelete)
+                                }
                                 selectedKeys = emptySet()
                                 selectionMode = false
                             }) {
