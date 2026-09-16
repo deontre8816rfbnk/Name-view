@@ -102,7 +102,7 @@ fun MainDatabaseScreen(
     uiState: DatabaseUiState,
     onSearchChange: (String) -> Unit,
     onTagSelect: (String) -> Unit,
-    onToggleSort: () -> Void,
+    onToggleSort: () -> Unit,
     onAddEntry: (DatabaseEntry) -> Unit,
     onUpdateEntry: (DatabaseEntry, DatabaseEntry) -> Unit,
     onBatchUpdate: (List<Pair<DatabaseEntry, DatabaseEntry>>) -> Unit = {},
@@ -200,7 +200,7 @@ fun MainDatabaseScreen(
             if (!selectionMode) {
                 OutlinedTextField(
                     value = uiState.searchQuery,
-                    onValueChange = onSearchChange,
+                    onValueChange = { onSearchChange(it) },
                     placeholder = {
                         Text("Search names, tags, stats...", fontFamily = LexendFontFamily, fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f))
                     },
@@ -314,7 +314,6 @@ fun MainDatabaseScreen(
                                         selectedKeys = if (selectedKeys.contains(key)) selectedKeys - key else selectedKeys + key
                                         if (selectedKeys.isEmpty()) selectionMode = false
                                     } else {
-                                        // FIX: Open overview dialog first, not edit
                                         overviewEntry = entry
                                     }
                                 },
@@ -405,7 +404,7 @@ fun MainDatabaseScreen(
                                 SortOrder.Z_TO_A -> "Z→A"
                             },
                             selected = isSortActive,
-                            onClick = onToggleSort
+                            onClick = { onToggleSort() }
                         )
                     }
                     item {
@@ -454,64 +453,66 @@ fun MainDatabaseScreen(
                     Spacer(Modifier.width(10.dp))
                     
                     // Main + button (Click to add player, Long press for menu)
-                    Box {
-                        FloatingActionButton(
-                            onClick = {
-                                showFabMenu = false
-                                isAddingNew = true
-                            },
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
-                            elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                            modifier = Modifier
-                                .size(52.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            showFabMenu = !showFabMenu
-                                        }
-                                    )
+                    Box(
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    showFabMenu = !showFabMenu
                                 }
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
+                            )
                         }
-
-                        // Animated Vertical Menu for Club/Nation/Coach
-                        AnimatedVisibility(
-                            visible = showFabMenu,
-                            enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
-                            exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(),
-                            modifier = Modifier.align(Alignment.BottomCenter)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier.padding(bottom = 64.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            AnimatedVisibility(
+                                visible = showFabMenu,
+                                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
+                                exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut()
                             ) {
-                                listOf(
-                                    EntityType.Nation to "Nation",
-                                    EntityType.Club to "Club",
-                                    EntityType.Manager to "Coach"
-                                ).forEach { (type, label) ->
-                                    Surface(
-                                        shape = RoundedCornerShape(22.dp),
-                                        color = Color.White,
-                                        shadowElevation = 8.dp,
-                                        modifier = Modifier.clickable {
-                                            createEntityType = type
-                                            showFabMenu = false
+                                Column(
+                                    modifier = Modifier.padding(bottom = 10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    listOf(
+                                        EntityType.Nation to "Nation",
+                                        EntityType.Club to "Club",
+                                        EntityType.Manager to "Coach"
+                                    ).forEach { (type, label) ->
+                                        Surface(
+                                            shape = RoundedCornerShape(22.dp),
+                                            color = Color.White,
+                                            shadowElevation = 8.dp,
+                                            modifier = Modifier.clickable {
+                                                createEntityType = type
+                                                showFabMenu = false
+                                            }
+                                        ) {
+                                            Text(
+                                                label,
+                                                fontFamily = LexendFontFamily,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp,
+                                                color = Color.Black,
+                                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                            )
                                         }
-                                    ) {
-                                        Text(
-                                            label,
-                                            fontFamily = LexendFontFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = Color.Black,
-                                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                                        )
                                     }
                                 }
+                            }
+                            
+                            FloatingActionButton(
+                                onClick = {
+                                    showFabMenu = false
+                                    isAddingNew = true
+                                },
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
+                                elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                                modifier = Modifier.size(52.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
                             }
                         }
                         
