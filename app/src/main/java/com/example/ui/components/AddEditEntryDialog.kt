@@ -164,7 +164,12 @@ fun AddEditEntryDialog(
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 76.dp)
+            ) {
                 // Header
                 Row(
                     modifier = Modifier
@@ -435,12 +440,18 @@ fun AddEditEntryDialog(
                     Spacer(Modifier.height(24.dp))
                 }
 
-                // Fixed bottom action bar: Delete | Cancel | Update/Save
-                Surface(color = Color(0xFF0D0D0D), shadowElevation = 8.dp) {
+            } // end content Column
+
+                // Fixed bottom action bar — pinned, always visible
+                Surface(
+                    color = Color(0xFF0D0D0D),
+                    shadowElevation = 12.dp,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                                                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isEdit && onDelete != null) {
@@ -514,7 +525,7 @@ fun AddEditEntryDialog(
                         }
                     }
                 }
-            }
+            } // Box
         }
     }
 
