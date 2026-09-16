@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,7 +62,7 @@ fun OverviewDialog(
                 color = Color(0xFF141414),
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
-                    .fillMaxSize(0.82f)
+                    .fillMaxHeight(0.82f)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = { onRequestEdit() },
