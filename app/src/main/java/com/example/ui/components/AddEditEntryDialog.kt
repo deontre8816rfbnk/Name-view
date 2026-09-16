@@ -452,12 +452,16 @@ fun AddEditEntryDialog(
                                 .joinToString(", ") { k ->
                                     "$k:${(statValues[k] ?: 0f).roundToInt()}"
                                 }
+                            val keys = EntityConstants.statsForPosition(position)
+                            val computedOverall = if (keys.isNotEmpty()) {
+                                keys.map { statValues[it] ?: 0f }.average().toFloat()
+                            } else 0f
                             val extra = mutableMapOf(
                                 "Type" to EntityType.Player.name,
                                 "Position" to position,
                                 "Playstyle" to playstyle,
                                 "Date" to dateStr,
-                                "Overall" to overall.roundToInt().toString()
+                                "Overall" to computedOverall.roundToInt().toString()
                             )
                             if (nationality.isNotBlank()) extra["Nationality"] = nationality
                             if (club.isNotBlank()) extra["Club"] = club
