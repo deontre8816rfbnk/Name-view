@@ -1,25 +1,15 @@
 package com.example.ui.components
 
 import android.content.Intent
-
 import android.graphics.BitmapFactory
-
 import androidx.compose.ui.platform.LocalContext
-
 import androidx.compose.ui.layout.ContentScale
-
 import androidx.compose.ui.graphics.asImageBitmap
-
 import androidx.compose.foundation.layout.aspectRatio
-
 import androidx.compose.foundation.Image
-
 import androidx.activity.result.contract.ActivityResultContracts
-
 import androidx.activity.compose.rememberLauncherForActivityResult
-
 import android.net.Uri
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -127,7 +117,7 @@ fun EntityEditDialog(
         mutableStateOf(initialEntry?.skills?.toList() ?: emptyList())
     }
     val managerStatValues = remember { mutableStateMapOf<String, Float>() }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(initialEntry) {
         EntityConstants.MANAGER_STATS.forEach { key ->
             managerStatValues[key] = initialEntry?.extractStat(key) ?: 0f
         }
@@ -147,7 +137,7 @@ fun EntityEditDialog(
         mutableStateOf(initialEntry?.extraFields?.get("CollectiveCondition") ?: "C")
     }
 
-    // Nation-specific (player count is calculated later; show stored value)
+    // Nation-specific
     var playerCountNote by remember {
         mutableStateOf(initialEntry?.extraFields?.get("PlayerCount") ?: "")
     }
@@ -196,301 +186,325 @@ fun EntityEditDialog(
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = if (isEdit) "Edit $titleLabel" else "New $titleLabel",
-                    fontFamily = LexendFontFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    color = Color.White,
-                    modifier = Modifier.padding(16.dp)
-                )
-
+            Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
+                        .fillMaxSize()
+                        .padding(bottom = 76.dp) // Leave space for the pinned footer
                 ) {
-                    // Unified fields
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Name", fontFamily = LexendFontFamily) },
-                        singleLine = true,
-                        colors = fieldColors,
-                        modifier = Modifier.fillMaxWidth()
+                    Text(
+                        text = if (isEdit) "Edit $titleLabel" else "New $titleLabel",
+                        fontFamily = LexendFontFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        color = Color.White,
+                        modifier = Modifier.padding(16.dp)
                     )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = customId,
-                        onValueChange = { customId = it },
-                        label = { Text("Custom ID", fontFamily = LexendFontFamily) },
-                        singleLine = true,
-                        colors = fieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description", fontFamily = LexendFontFamily) },
-                        colors = fieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
 
-                    // Tags
-                    Text("TAGS", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        // Unified fields
                         OutlinedTextField(
-                            value = tagInput,
-                            onValueChange = { tagInput = it },
-                            placeholder = { Text("Tag…", color = Color.White.copy(alpha = 0.4f)) },
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Name", fontFamily = LexendFontFamily) },
                             singleLine = true,
                             colors = fieldColors,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        IconButton(onClick = {
-                            if (tagInput.isBlank()) showTagPicker = true
-                            else {
-                                val t = tagInput.trim()
-                                if (t.isNotBlank() && t !in tags) tags = tags + t
-                                tagInput = ""
-                            }
-                        }) {
-                            Icon(Icons.Default.Add, null, tint = Color.White)
-                        }
-                    }
-                    if (tags.isNotEmpty()) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
-                            tags.forEach { tag ->
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = Color.White.copy(alpha = 0.12f),
-                                    modifier = Modifier.clickable { tags = tags - tag }
-                                ) {
-                                    Text(tag, fontFamily = LexendFontFamily, fontSize = 13.sp, color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
-                                }
-                            }
-                        }
-                    }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = customId,
+                            onValueChange = { customId = it },
+                            label = { Text("Custom ID", fontFamily = LexendFontFamily) },
+                            singleLine = true,
+                            colors = fieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Description", fontFamily = LexendFontFamily) },
+                            colors = fieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
 
-                    Spacer(Modifier.height(12.dp))
-                    Text("DATE", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
-                    EntityDateWheels(day, month, year, { day = it }, { month = it }, { year = it })
-
-                    // Type-specific sections
-                    when (entityType) {
-                        EntityType.Manager -> {
-                            Spacer(Modifier.height(12.dp))
-                            Text("MANAGER", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
-                            Spacer(Modifier.height(8.dp))
-                            EntitySimpleDropdown("Nationality", nationality, listOf("") + availableNations, { nationality = it }, fieldColors)
-
-                            Spacer(Modifier.height(8.dp))
-                            Text("PLAYSTYLES", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
-                            val allPlaystyles = listOf(
-                                "Possession Game", "Quick Counter", "Long Ball Counter",
-                                "Out Wide", "Long Ball", "Balanced"
-                            )
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                allPlaystyles.forEach { ps ->
-                                    val sel = ps in managerPlaystyles
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = if (sel) Color.White else Color.White.copy(alpha = 0.08f),
-                                        modifier = Modifier.clickable {
-                                            managerPlaystyles = if (sel) managerPlaystyles - ps else managerPlaystyles + ps
-                                        }
-                                    ) {
-                                        Text(ps, fontFamily = LexendFontFamily, fontSize = 12.sp,
-                                            color = if (sel) Color.Black else Color.White,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(8.dp))
-                            Text("SKILLS", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                EntityConstants.MANAGER_SKILLS.forEach { skill ->
-                                    val sel = skill in managerSkills
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = if (sel) Color(0xFF10B981) else Color.White.copy(alpha = 0.08f),
-                                        modifier = Modifier.clickable {
-                                            managerSkills = if (sel) managerSkills - skill else managerSkills + skill
-                                        }
-                                    ) {
-                                        Text(skill, fontFamily = LexendFontFamily, fontSize = 12.sp, color = Color.White,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(8.dp))
-                            Text("STATS", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
-                            EntityConstants.MANAGER_STATS.forEach { key ->
-                                EntityStatRow(
-                                    label = key,
-                                    value = managerStatValues[key] ?: 0f,
-                                    onValueChange = { managerStatValues[key] = it },
-                                    colors = fieldColors
-                                )
-                                Spacer(Modifier.height(6.dp))
-                            }
-                        }
-
-                        EntityType.Club -> {
-                            Spacer(Modifier.height(12.dp))
-                            Text("CLUB", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
-                            Spacer(Modifier.height(8.dp))
-                            ImagePickBlock(
-                                imagePath = imagePath,
-                                label = "Club logo",
-                                onPick = { imagePicker.launch(arrayOf("image/*")) },
-                                onClear = { imagePath = "" }
-                            )
-                            Spacer(Modifier.height(8.dp))
+                        // Tags
+                        Text("TAGS", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             OutlinedTextField(
-                                value = teamStrength,
-                                onValueChange = { teamStrength = it },
-                                label = { Text("Team Strength (1000–3100+)", fontFamily = LexendFontFamily) },
+                                value = tagInput,
+                                onValueChange = { tagInput = it },
+                                placeholder = { Text("Tag…", color = Color.White.copy(alpha = 0.4f)) },
                                 singleLine = true,
                                 colors = fieldColors,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(Modifier.height(8.dp))
-                            EntitySimpleDropdown(
-                                "Star Rating", clubStarRating,
-                                listOf("1", "2", "3", "4", "5"),
-                                { clubStarRating = it }, fieldColors
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            EntitySimpleDropdown(
-                                "Team Playstyle", teamPlaystyle,
-                                listOf("", "Possession Game", "Quick Counter", "Long Ball Counter", "Out Wide", "Long Ball"),
-                                { teamPlaystyle = it }, fieldColors
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            EntitySimpleDropdown(
-                                "Collective Condition", collectiveCondition,
-                                listOf("A", "B", "C", "D", "E"),
-                                { collectiveCondition = it }, fieldColors
-                            )
-                        }
-
-                        EntityType.Nation -> {
-                            Spacer(Modifier.height(12.dp))
-                            Text("NATION", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
-                            Spacer(Modifier.height(8.dp))
-                            ImagePickBlock(
-                                imagePath = imagePath,
-                                label = "Nation flag",
-                                onPick = { imagePicker.launch(arrayOf("image/*")) },
-                                onClear = { imagePath = "" }
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Player count and position breakdown are calculated from players with this nationality.",
-                                fontFamily = LexendFontFamily,
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.5f)
-                            )
-                            if (playerCountNote.isNotBlank()) {
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    "Stored player count: $playerCountNote",
-                                    fontFamily = LexendFontFamily,
-                                    fontSize = 14.sp,
-                                    color = Color.White
-                                )
+                            IconButton(onClick = {
+                                if (tagInput.isBlank()) showTagPicker = true
+                                else {
+                                    val t = tagInput.trim()
+                                    if (t.isNotBlank() && t !in tags) tags = tags + t
+                                    tagInput = ""
+                                }
+                            }) {
+                                Icon(Icons.Default.Add, null, tint = Color.White)
                             }
                         }
-
-                        else -> {}
-                    }
-
-                    Spacer(Modifier.height(24.dp))
-                }
-
-                Surface(color = Color(0xFF0D0D0D), shadowElevation = 8.dp) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (isEdit && onDelete != null) {
-                        Button(
-                            onClick = onDelete,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F1515), contentColor = Color(0xFFEF4444)),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A), contentColor = Color.White),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = {
-                            if (name.isBlank()) return@Button
-                            val dateStr = "%02d/%02d/%04d".format(day, month, year)
-                            val extra = mutableMapOf(
-                                "Type" to entityType.name,
-                                "Date" to dateStr
-                            )
-                            var statsStr = ""
-
-                            when (entityType) {
-                                EntityType.Manager -> {
-                                    if (nationality.isNotBlank()) extra["Nationality"] = nationality
-                                    if (managerPlaystyles.isNotEmpty()) extra["Playstyles"] = managerPlaystyles.joinToString(", ")
-                                    if (managerSkills.isNotEmpty()) extra["Skills"] = managerSkills.joinToString(", ")
-                                    statsStr = EntityConstants.MANAGER_STATS.joinToString(", ") { k ->
-                                        "$k:${(managerStatValues[k] ?: 0f).roundToInt()}"
+                        if (tags.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+                                tags.forEach { tag ->
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.White.copy(alpha = 0.12f),
+                                        modifier = Modifier.clickable { tags = tags - tag }
+                                    ) {
+                                        Text(tag, fontFamily = LexendFontFamily, fontSize = 13.sp, color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
                                     }
                                 }
-                                EntityType.Club -> {
-                                    if (teamStrength.isNotBlank()) extra["TeamStrength"] = teamStrength
-                                    extra["ClubStarRating"] = clubStarRating
-                                    if (teamPlaystyle.isNotBlank()) extra["TeamPlaystyleProficiency"] = teamPlaystyle
-                                    extra["CollectiveCondition"] = collectiveCondition
-                                    if (imagePath.isNotBlank()) extra["LogoPath"] = imagePath
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+                        Text("DATE", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
+                        EntityDateWheels(day, month, year, { day = it }, { month = it }, { year = it })
+
+                        // Type-specific sections
+                        when (entityType) {
+                            EntityType.Manager -> {
+                                Spacer(Modifier.height(12.dp))
+                                Text("MANAGER", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
+                                Spacer(Modifier.height(8.dp))
+                                EntitySimpleDropdown("Nationality", nationality, listOf("") + availableNations, { nationality = it }, fieldColors)
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("PLAYSTYLES", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
+                                val allPlaystyles = listOf(
+                                    "Possession Game", "Quick Counter", "Long Ball Counter",
+                                    "Out Wide", "Long Ball", "Balanced"
+                                )
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    allPlaystyles.forEach { ps ->
+                                        val sel = ps in managerPlaystyles
+                                        Surface(
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = if (sel) Color.White else Color.White.copy(alpha = 0.08f),
+                                            modifier = Modifier.clickable {
+                                                managerPlaystyles = if (sel) managerPlaystyles - ps else managerPlaystyles + ps
+                                            }
+                                        ) {
+                                            Text(ps, fontFamily = LexendFontFamily, fontSize = 12.sp,
+                                                color = if (sel) Color.Black else Color.White,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                                        }
+                                    }
                                 }
-                                EntityType.Nation -> {
-                                    if (playerCountNote.isNotBlank()) extra["PlayerCount"] = playerCountNote
-                                    if (imagePath.isNotBlank()) extra["FlagPath"] = imagePath
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("SKILLS", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    EntityConstants.MANAGER_SKILLS.forEach { skill ->
+                                        val sel = skill in managerSkills
+                                        Surface(
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = if (sel) Color(0xFF10B981) else Color.White.copy(alpha = 0.08f),
+                                            modifier = Modifier.clickable {
+                                                managerSkills = if (sel) managerSkills - skill else managerSkills + skill
+                                            }
+                                        ) {
+                                            Text(skill, fontFamily = LexendFontFamily, fontSize = 12.sp, color = Color.White,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                                        }
+                                    }
                                 }
-                                else -> {}
+
+                                Spacer(Modifier.height(8.dp))
+                                Text("STATS", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
+                                EntityConstants.MANAGER_STATS.forEach { key ->
+                                    EntityStatRow(
+                                        label = key,
+                                        value = managerStatValues[key] ?: 0f,
+                                        onValueChange = { managerStatValues[key] = it },
+                                        colors = fieldColors
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                }
                             }
 
-                            onSave(
-                                DatabaseEntry(
-                                    name = name.trim(),
-                                    id = customId.trim(),
-                                    description = description.trim(),
-                                    stats = statsStr,
-                                    tags = tags,
-                                    extraFields = extra
+                            EntityType.Club -> {
+                                Spacer(Modifier.height(12.dp))
+                                Text("CLUB", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
+                                Spacer(Modifier.height(8.dp))
+                                ImagePickBlock(
+                                    imagePath = imagePath,
+                                    label = "Club logo",
+                                    onPick = { imagePicker.launch(arrayOf("image/*")) },
+                                    onClear = { imagePath = "" }
                                 )
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-                        modifier = Modifier.weight(1f)
+                                Spacer(Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = teamStrength,
+                                    onValueChange = { teamStrength = it },
+                                    label = { Text("Team Strength (1000–3100+)", fontFamily = LexendFontFamily) },
+                                    singleLine = true,
+                                    colors = fieldColors,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                EntitySimpleDropdown(
+                                    "Star Rating", clubStarRating,
+                                    listOf("1", "2", "3", "4", "5"),
+                                    { clubStarRating = it }, fieldColors
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                EntitySimpleDropdown(
+                                    "Team Playstyle", teamPlaystyle,
+                                    listOf("", "Possession Game", "Quick Counter", "Long Ball Counter", "Out Wide", "Long Ball"),
+                                    { teamPlaystyle = it }, fieldColors
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                EntitySimpleDropdown(
+                                    "Collective Condition", collectiveCondition,
+                                    listOf("A", "B", "C", "D", "E"),
+                                    { collectiveCondition = it }, fieldColors
+                                )
+                            }
+
+                            EntityType.Nation -> {
+                                Spacer(Modifier.height(12.dp))
+                                Text("NATION", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White.copy(alpha = 0.45f))
+                                Spacer(Modifier.height(8.dp))
+                                ImagePickBlock(
+                                    imagePath = imagePath,
+                                    label = "Nation flag",
+                                    onPick = { imagePicker.launch(arrayOf("image/*")) },
+                                    onClear = { imagePath = "" }
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "Player count and position breakdown are calculated from players with this nationality.",
+                                    fontFamily = LexendFontFamily,
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.5f)
+                                )
+                                if (playerCountNote.isNotBlank()) {
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        "Stored player count: $playerCountNote",
+                                        fontFamily = LexendFontFamily,
+                                        fontSize = 14.sp,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            else -> {}
+                        }
+
+                        Spacer(Modifier.height(24.dp))
+                    }
+                } // end content Column
+
+                // Fixed bottom action bar — pinned, always visible
+                Surface(
+                    color = Color(0xFF0D0D0D),
+                    shadowElevation = 12.dp,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(if (isEdit) "Update" else "Save", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        if (isEdit && onDelete != null) {
+                            Button(
+                                onClick = onDelete,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF3F1515),
+                                    contentColor = Color(0xFFEF4444)
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Button(
+                            onClick = onDismiss,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2A2A2A),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = {
+                                if (name.isBlank()) return@Button
+                                val dateStr = "%02d/%02d/%04d".format(day, month, year)
+                                val extra = mutableMapOf(
+                                    "Type" to entityType.name,
+                                    "Date" to dateStr
+                                )
+                                var statsStr = ""
+
+                                when (entityType) {
+                                    EntityType.Manager -> {
+                                        if (nationality.isNotBlank()) extra["Nationality"] = nationality
+                                        if (managerPlaystyles.isNotEmpty()) extra["Playstyles"] = managerPlaystyles.joinToString(", ")
+                                        if (managerSkills.isNotEmpty()) extra["Skills"] = managerSkills.joinToString(", ")
+                                        statsStr = EntityConstants.MANAGER_STATS.joinToString(", ") { k ->
+                                            "$k:${(managerStatValues[k] ?: 0f).roundToInt()}"
+                                        }
+                                    }
+                                    EntityType.Club -> {
+                                        if (teamStrength.isNotBlank()) extra["TeamStrength"] = teamStrength
+                                        extra["ClubStarRating"] = clubStarRating
+                                        if (teamPlaystyle.isNotBlank()) extra["TeamPlaystyleProficiency"] = teamPlaystyle
+                                        extra["CollectiveCondition"] = collectiveCondition
+                                        if (imagePath.isNotBlank()) extra["LogoPath"] = imagePath
+                                    }
+                                    EntityType.Nation -> {
+                                        if (playerCountNote.isNotBlank()) extra["PlayerCount"] = playerCountNote
+                                        if (imagePath.isNotBlank()) extra["FlagPath"] = imagePath
+                                    }
+                                    else -> {}
+                                }
+
+                                onSave(
+                                    DatabaseEntry(
+                                        name = name.trim(),
+                                        id = customId.trim(),
+                                        description = description.trim(),
+                                        stats = statsStr,
+                                        tags = tags,
+                                        extraFields = extra
+                                    )
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                if (isEdit) "Update" else "Save",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
-                } // Surface bottom bar
-            }
+            } // Box
         }
     }
 
@@ -652,7 +666,6 @@ private fun EntityStatRow(
         }
     }
 }
-
 
 @Composable
 private fun ImagePickBlock(
