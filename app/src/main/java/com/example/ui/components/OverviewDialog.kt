@@ -28,6 +28,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,10 +45,6 @@ import com.example.model.DatabaseEntry
 import com.example.model.EntityType
 import com.example.ui.theme.LexendFontFamily
 
-/**
- * Read-only overview. Tap outside to close.
- * Press-and-hold inside the card to open edit.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OverviewDialog(
@@ -75,186 +74,192 @@ fun OverviewDialog(
                     .fillMaxWidth(0.92f)
                     .fillMaxHeight(0.82f)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = { onRequestEdit() },
-                                // Consume tap so it doesn't fall through to the outer dismiss box
-                                onTap = { } 
-                            )
-                        }
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        entry.displayName,
-                        fontFamily = LexendFontFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 24.sp,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        entry.entityType.name,
-                        fontFamily = LexendFontFamily,
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-
-                    // Flag / Logo
-                    val imgPath = entry.extraFields["FlagPath"]
-                        ?: entry.extraFields["LogoPath"]
-                        ?: ""
-                    if (imgPath.isNotBlank()) {
-                        val context = LocalContext.current
-                        val bmp = remember(imgPath) {
-                            try {
-                                context.contentResolver.openInputStream(Uri.parse(imgPath))?.use {
-                                    BitmapFactory.decodeStream(it)
-                                }
-                            } catch (_: Exception) { null }
-                        }
-                        if (bmp != null) {
-                            Spacer(Modifier.height(12.dp))
-                            Image(
-                                bitmap = bmp.asImageBitmap(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                            )
-                        }
-                    }
-
-                    // Nation live stats
-                    if (entry.entityType == EntityType.Nation && nationPlayerCount >= 0) {
-                        Spacer(Modifier.height(10.dp))
-                        InfoRow("Players", nationPlayerCount.toString())
-                        if (nationBreakdown.isNotEmpty()) {
-                            InfoRow(
-                                "Positions",
-                                nationBreakdown.entries.joinToString(", ") { "${it.key}: ${it.value}" }
-                            )
-                        }
-                    }
-
-                    if (entry.overall > 0f && entry.entityType == EntityType.Player) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Overall ${entry.overall.toInt()}",
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Color(0xFF10B981)
-                        )
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-                    InfoRow("ID", entry.id)
-                    InfoRow("Date", entry.date)
-                    InfoRow("Description", entry.description)
-                    InfoRow("Position", entry.position)
-                    if (entry.secondaryPositions.isNotEmpty()) {
-                        InfoRow("Secondary", entry.secondaryPositions.joinToString(", "))
-                    }
-                    InfoRow("Playstyle", entry.playstyle)
-                    InfoRow("Nationality", entry.nationality)
-                    InfoRow("Club", entry.club)
-
-                    if (entry.tags.isNotEmpty()) {
-                        Spacer(Modifier.height(10.dp))
-                        Text("Tags", fontFamily = LexendFontFamily, fontSize = 12.sp, color = Color.White.copy(alpha = 0.5f))
-                        Spacer(Modifier.height(4.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            entry.tags.forEach { tag ->
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.1f)
-                                ) {
-                                    Text(
-                                        tag,
-                                        fontFamily = LexendFontFamily,
-                                        fontSize = 12.sp,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = { onRequestEdit() },
+                                    onTap = { } // Consume tap so it doesn't dismiss
+                                )
                             }
-                        }
-                    }
-
-                    if (entry.skills.isNotEmpty()) {
-                        Spacer(Modifier.height(10.dp))
-                        InfoRow("Skills", entry.skills.joinToString(", "))
-                    }
-
-                    if (entry.stats.isNotBlank()) {
-                        Spacer(Modifier.height(14.dp))
-                        Text(
-                            "STATS",
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.45f)
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        entry.stats.split(",").map { it.trim() }.filter { it.isNotBlank() }.forEach { pair ->
-                            val parts = pair.split(":")
-                            if (parts.size >= 2) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(parts[0].trim(), fontFamily = LexendFontFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.75f))
-                                    Text(parts[1].trim(), fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                                }
-                            }
-                        }
-                    }
-
-                    // Extra fields not already shown
-                    val skip = setOf(
-                        "Type", "Position", "Playstyle", "Date", "Overall",
-                        "Nationality", "Club", "SecondaryPositions", "Skills",
-                        "Size", "size"
-                    )
-                    entry.extraFields
-                        .filterKeys { key -> skip.none { it.equals(key, ignoreCase = true) } }
-                        .forEach { (k, v) ->
-                            if (v.isNotBlank()) InfoRow(k, v)
-                        }
-
-                    Spacer(Modifier.height(20.dp))
-                    Text(
-                        "Hold anywhere to edit, or use the button below",
-                        fontFamily = LexendFontFamily,
-                        fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.35f),
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            .padding(20.dp)
+                            .padding(bottom = 70.dp) // Leave space for the pinned buttons
                     ) {
-                        androidx.compose.material3.TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Close", color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                        Text(
+                            entry.displayName,
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
+                            color = Color.White
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            entry.entityType.name,
+                            fontFamily = LexendFontFamily,
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.5f)
+                        )
+
+                        val imgPath = entry.extraFields["FlagPath"] ?: entry.extraFields["LogoPath"] ?: ""
+                        if (imgPath.isNotBlank()) {
+                            val context = LocalContext.current
+                            val bmp = remember(imgPath) {
+                                try {
+                                    context.contentResolver.openInputStream(Uri.parse(imgPath))?.use {
+                                        BitmapFactory.decodeStream(it)
+                                    }
+                                } catch (_: Exception) { null }
+                            }
+                            if (bmp != null) {
+                                Spacer(Modifier.height(12.dp))
+                                Image(
+                                    bitmap = bmp.asImageBitmap(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                )
+                            }
                         }
-                        androidx.compose.material3.Button(
-                            onClick = onRequestEdit,
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black
-                            ),
-                            modifier = Modifier.weight(1f)
+
+                        if (entry.entityType == EntityType.Nation && nationPlayerCount >= 0) {
+                            Spacer(Modifier.height(10.dp))
+                            InfoRow("Players", nationPlayerCount.toString())
+                            if (nationBreakdown.isNotEmpty()) {
+                                InfoRow(
+                                    "Positions",
+                                    nationBreakdown.entries.joinToString(", ") { "${it.key}: ${it.value}" }
+                                )
+                            }
+                        }
+
+                        if (entry.overall > 0f && entry.entityType == EntityType.Player) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "Overall ${entry.overall.toInt()}",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Color(0xFF10B981)
+                            )
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+                        InfoRow("ID", entry.id)
+                        InfoRow("Date", entry.date)
+                        InfoRow("Description", entry.description)
+                        InfoRow("Position", entry.position)
+                        if (entry.secondaryPositions.isNotEmpty()) {
+                            InfoRow("Secondary", entry.secondaryPositions.joinToString(", "))
+                        }
+                        InfoRow("Playstyle", entry.playstyle)
+                        InfoRow("Nationality", entry.nationality)
+                        InfoRow("Club", entry.club)
+
+                        if (entry.tags.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            Text("Tags", fontFamily = LexendFontFamily, fontSize = 12.sp, color = Color.White.copy(alpha = 0.5f))
+                            Spacer(Modifier.height(4.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                entry.tags.forEach { tag ->
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = Color.White.copy(alpha = 0.1f)
+                                    ) {
+                                        Text(
+                                            tag,
+                                            fontFamily = LexendFontFamily,
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (entry.skills.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            InfoRow("Skills", entry.skills.joinToString(", "))
+                        }
+
+                        if (entry.stats.isNotBlank()) {
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                "STATS",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.45f)
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            entry.stats.split(",").map { it.trim() }.filter { it.isNotBlank() }.forEach { pair ->
+                                val parts = pair.split(":")
+                                if (parts.size >= 2) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(parts[0].trim(), fontFamily = LexendFontFamily, fontSize = 13.sp, color = Color.White.copy(alpha = 0.75f))
+                                        Text(parts[1].trim(), fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+
+                        val skip = setOf(
+                            "Type", "Position", "Playstyle", "Date", "Overall",
+                            "Nationality", "Club", "SecondaryPositions", "Skills",
+                            "Size", "size"
+                        )
+                        entry.extraFields
+                            .filterKeys { key -> skip.none { it.equals(key, ignoreCase = true) } }
+                            .forEach { (k, v) ->
+                                if (v.isNotBlank()) InfoRow(k, v)
+                            }
+
+                        Spacer(Modifier.height(20.dp))
+                        Text(
+                            "Hold anywhere inside to edit",
+                            fontFamily = LexendFontFamily,
+                            fontSize = 11.sp,
+                            color = Color.White.copy(alpha = 0.35f),
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+
+                    // Pinned Bottom Bar
+                    Surface(
+                        color = Color(0xFF121212),
+                        shadowElevation = 12.dp,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text("Edit", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                            TextButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Close", color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                            }
+                            Button(
+                                onClick = onRequestEdit,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Edit", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
