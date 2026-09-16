@@ -630,15 +630,16 @@ private fun TagsBottomSheet(
                             Text("No tags yet", color = Color.White.copy(alpha = 0.5f), fontFamily = LexendFontFamily)
                         }
                     } else {
-                        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-                            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                        val sortedTags = tagCounts.entries.sortedByDescending { it.value }
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 48.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(tagCounts.entries.sortedByDescending { it.value }.toList().size) { index ->
-                                val (tag, count) = tagCounts.entries.sortedByDescending { it.value }.toList()[index]
+                            items(sortedTags.size) { index ->
+                                val (tag, count) = sortedTags[index]
                                 Surface(
                                     shape = RoundedCornerShape(16.dp),
                                     color = Color.White.copy(alpha = 0.08f),
