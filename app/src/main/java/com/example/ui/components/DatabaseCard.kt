@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.DatabaseEntry
+import com.example.model.EntityType
 import com.example.ui.theme.LexendFontFamily
 
 @OptIn(ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
@@ -77,15 +78,43 @@ fun DatabaseCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = entry.displayName,
-                    fontFamily = LexendFontFamily,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 17.sp,
-                    color = Color.White,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = entry.displayName,
+                        fontFamily = LexendFontFamily,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 17.sp,
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (entry.entityType != EntityType.Player) {
+                            Text(
+                                entry.entityType.name,
+                                fontFamily = LexendFontFamily,
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.45f)
+                            )
+                        }
+                        if (entry.entityType == EntityType.Player && entry.overall > 0f) {
+                            Text(
+                                "OVR ${entry.overall.toInt()}",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF10B981)
+                            )
+                        }
+                        if (entry.position.isNotBlank() && entry.entityType == EntityType.Player) {
+                            Text(
+                                entry.position,
+                                fontFamily = LexendFontFamily,
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
 
                 if (isSelected) {
                     Icon(
