@@ -20,6 +20,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 
 import android.net.Uri
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -294,7 +295,7 @@ fun EntityEditDialog(
                                 "Possession Game", "Quick Counter", "Long Ball Counter",
                                 "Out Wide", "Long Ball", "Balanced"
                             )
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 allPlaystyles.forEach { ps ->
                                     val sel = ps in managerPlaystyles
                                     Surface(
@@ -313,7 +314,7 @@ fun EntityEditDialog(
 
                             Spacer(Modifier.height(8.dp))
                             Text("SKILLS", fontFamily = LexendFontFamily, fontSize = 11.sp, color = Color.White.copy(alpha = 0.55f))
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 EntityConstants.MANAGER_SKILLS.forEach { skill ->
                                     val sel = skill in managerSkills
                                     Surface(
@@ -416,7 +417,10 @@ fun EntityEditDialog(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF121212))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (isEdit && onDelete != null) {

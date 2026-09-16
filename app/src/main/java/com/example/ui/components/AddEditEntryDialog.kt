@@ -314,7 +314,10 @@ fun AddEditEntryDialog(
 
                     // Secondary positions (max 6)
                     FieldLabel("SECONDARY POSITIONS (max 6)")
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         EntityConstants.POSITIONS.filter { it != position }.forEach { pos ->
                             val selected = pos in secondary
                             Surface(
@@ -361,7 +364,10 @@ fun AddEditEntryDialog(
 
                     Spacer(Modifier.height(12.dp))
                     SectionTitle("SKILLS")
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         EntityConstants.PLAYER_SKILLS.forEach { skill ->
                             val selected = skill in skills
                             Surface(
@@ -429,11 +435,12 @@ fun AddEditEntryDialog(
                     Spacer(Modifier.height(24.dp))
                 }
 
-                // Bottom buttons
+                // Bottom buttons — always visible
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .background(Color(0xFF121212))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (isEdit && onDelete != null) {

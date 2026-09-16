@@ -237,12 +237,34 @@ fun OverviewDialog(
 
                     Spacer(Modifier.height(20.dp))
                     Text(
-                        "Hold to edit · tap outside to close",
+                        "Hold anywhere to edit, or use the button below",
                         fontFamily = LexendFontFamily,
                         fontSize = 11.sp,
                         color = Color.White.copy(alpha = 0.35f),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Close", color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                        }
+                        androidx.compose.material3.Button(
+                            onClick = onRequestEdit,
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Edit", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
