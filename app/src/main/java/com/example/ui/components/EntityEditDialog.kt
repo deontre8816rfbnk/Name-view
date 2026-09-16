@@ -416,20 +416,28 @@ fun EntityEditDialog(
                     Spacer(Modifier.height(24.dp))
                 }
 
+                Surface(color = Color(0xFF0D0D0D), shadowElevation = 8.dp) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF121212))
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (isEdit && onDelete != null) {
-                        TextButton(onClick = onDelete, modifier = Modifier.weight(1f)) {
-                            Text("Delete", color = Color(0xFFEF4444), fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = onDelete,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F1515), contentColor = Color(0xFFEF4444)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                         }
                     }
-                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("Cancel", color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A), contentColor = Color.White),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = {
@@ -481,6 +489,7 @@ fun EntityEditDialog(
                         Text(if (isEdit) "Update" else "Save", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                     }
                 }
+                } // Surface bottom bar
             }
         }
     }

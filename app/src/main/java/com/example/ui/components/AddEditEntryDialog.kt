@@ -435,61 +435,84 @@ fun AddEditEntryDialog(
                     Spacer(Modifier.height(24.dp))
                 }
 
-                // Bottom buttons — always visible
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF121212))
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (isEdit && onDelete != null) {
-                        TextButton(onClick = onDelete, modifier = Modifier.weight(1f)) {
-                            Text("Delete", color = Color(0xFFEF4444), fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("Cancel", color = Color.White.copy(alpha = 0.7f), fontFamily = LexendFontFamily)
-                    }
-                    Button(
-                        onClick = {
-                            if (name.isBlank()) return@Button
-                            val dateStr = "%02d/%02d/%04d".format(day, month, year)
-                            val statsStr = EntityConstants.statsForPosition(position)
-                                .joinToString(", ") { k ->
-                                    "$k:${(statValues[k] ?: 0f).roundToInt()}"
-                                }
-                            val keys = EntityConstants.statsForPosition(position)
-                            val computedOverall = if (keys.isNotEmpty()) {
-                                keys.map { statValues[it] ?: 0f }.average().toFloat()
-                            } else 0f
-                            val extra = mutableMapOf(
-                                "Type" to EntityType.Player.name,
-                                "Position" to position,
-                                "Playstyle" to playstyle,
-                                "Date" to dateStr,
-                                "Overall" to computedOverall.roundToInt().toString()
-                            )
-                            if (nationality.isNotBlank()) extra["Nationality"] = nationality
-                            if (club.isNotBlank()) extra["Club"] = club
-                            if (secondary.isNotEmpty()) extra["SecondaryPositions"] = secondary.joinToString(", ")
-                            if (skills.isNotEmpty()) extra["Skills"] = skills.joinToString(", ")
-
-                            onSave(
-                                DatabaseEntry(
-                                    name = name.trim(),
-                                    id = customId.trim(),
-                                    description = description.trim(),
-                                    stats = statsStr,
-                                    tags = tags,
-                                    extraFields = extra
-                                )
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-                        modifier = Modifier.weight(1f)
+                // Fixed bottom action bar: Delete | Cancel | Update/Save
+                Surface(color = Color(0xFF0D0D0D), shadowElevation = 8.dp) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(if (isEdit) "Update" else "Save", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        if (isEdit && onDelete != null) {
+                            Button(
+                                onClick = onDelete,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF3F1515),
+                                    contentColor = Color(0xFFEF4444)
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Button(
+                            onClick = onDismiss,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2A2A2A),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = {
+                                if (name.isBlank()) return@Button
+                                val dateStr = "%02d/%02d/%04d".format(day, month, year)
+                                val statsStr = EntityConstants.statsForPosition(position)
+                                    .joinToString(", ") { k ->
+                                        "$k:${(statValues[k] ?: 0f).roundToInt()}"
+                                    }
+                                val keys = EntityConstants.statsForPosition(position)
+                                val computedOverall = if (keys.isNotEmpty()) {
+                                    keys.map { statValues[it] ?: 0f }.average().toFloat()
+                                } else 0f
+                                val extra = mutableMapOf(
+                                    "Type" to EntityType.Player.name,
+                                    "Position" to position,
+                                    "Playstyle" to playstyle,
+                                    "Date" to dateStr,
+                                    "Overall" to computedOverall.roundToInt().toString()
+                                )
+                                if (nationality.isNotBlank()) extra["Nationality"] = nationality
+                                if (club.isNotBlank()) extra["Club"] = club
+                                if (secondary.isNotEmpty()) extra["SecondaryPositions"] = secondary.joinToString(", ")
+                                if (skills.isNotEmpty()) extra["Skills"] = skills.joinToString(", ")
+
+                                onSave(
+                                    DatabaseEntry(
+                                        name = name.trim(),
+                                        id = customId.trim(),
+                                        description = description.trim(),
+                                        stats = statsStr,
+                                        tags = tags,
+                                        extraFields = extra
+                                    )
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                if (isEdit) "Update" else "Save",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
