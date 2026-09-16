@@ -119,7 +119,6 @@ fun AddEditEntryDialog(
                 val fromEntry = initialEntry?.extractStat(key.replace(" ", ""))
                     ?: initialEntry?.extractStat(key)
                     ?: 0f
-                // also try stats string with various key forms
                 val fromStats = initialEntry?.stats?.split(",", ";")
                     ?.map { it.trim() }
                     ?.firstOrNull {
@@ -133,7 +132,6 @@ fun AddEditEntryDialog(
                 statValues[key] = fromStats ?: fromEntry
             }
         }
-        // drop keys not for this position (except keep IQ always)
         val keep = keys.toSet()
         statValues.keys.filter { it !in keep }.toList().forEach { statValues.remove(it) }
     }
@@ -165,282 +163,280 @@ fun AddEditEntryDialog(
             color = Color(0xFF121212)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 76.dp)
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (nameEditable) {
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            placeholder = {
-                                Text("Name", color = Color.White.copy(alpha = 0.4f), fontFamily = LexendFontFamily)
-                            },
-                            singleLine = true,
-                            colors = fieldColors,
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        Text(
-                            text = name.ifBlank { "Untitled" },
-                            fontFamily = LexendFontFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
-                            color = Color.White,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = { nameEditable = true }) {
-                            Icon(Icons.Default.Edit, null, tint = Color.White.copy(alpha = 0.7f))
-                        }
-                    }
-                }
-
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
+                        .fillMaxSize()
+                        .padding(bottom = 76.dp) // Leave space for pinned footer
                 ) {
-                    SectionTitle("IDENTITY")
-                    OutlinedTextField(
-                        value = customId,
-                        onValueChange = { customId = it },
-                        label = { Text("Custom ID", fontFamily = LexendFontFamily) },
-                        singleLine = true,
-                        colors = fieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description", fontFamily = LexendFontFamily) },
-                        colors = fieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    // Tags
-                    FieldLabel("TAGS")
+                    // Header
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = tagInput,
-                            onValueChange = { tagInput = it },
-                            placeholder = {
-                                Text("Type a tag…", color = Color.White.copy(alpha = 0.4f), fontFamily = LexendFontFamily)
-                            },
-                            singleLine = true,
-                            colors = fieldColors,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = {
-                            if (tagInput.isBlank()) {
-                                showTagPicker = true
-                            } else {
-                                val t = tagInput.trim()
-                                if (t.isNotBlank() && t !in tags) tags = tags + t
-                                tagInput = ""
+                        if (nameEditable) {
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                placeholder = {
+                                    Text("Name", color = Color.White.copy(alpha = 0.4f), fontFamily = LexendFontFamily)
+                                },
+                                singleLine = true,
+                                colors = fieldColors,
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            Text(
+                                text = name.ifBlank { "Untitled" },
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                color = Color.White,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { nameEditable = true }) {
+                                Icon(Icons.Default.Edit, null, tint = Color.White.copy(alpha = 0.7f))
                             }
-                        }) {
-                            Icon(Icons.Default.Add, null, tint = Color.White)
                         }
                     }
-                    if (tags.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(top = 6.dp)
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        SectionTitle("IDENTITY")
+                        OutlinedTextField(
+                            value = customId,
+                            onValueChange = { customId = it },
+                            label = { Text("Custom ID", fontFamily = LexendFontFamily) },
+                            singleLine = true,
+                            colors = fieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Description", fontFamily = LexendFontFamily) },
+                            colors = fieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+
+                        // Tags
+                        FieldLabel("TAGS")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            tags.forEach { tag ->
+                            OutlinedTextField(
+                                value = tagInput,
+                                onValueChange = { tagInput = it },
+                                placeholder = {
+                                    Text("Type a tag…", color = Color.White.copy(alpha = 0.4f), fontFamily = LexendFontFamily)
+                                },
+                                singleLine = true,
+                                colors = fieldColors,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = {
+                                if (tagInput.isBlank()) {
+                                    showTagPicker = true
+                                } else {
+                                    val t = tagInput.trim()
+                                    if (t.isNotBlank() && t !in tags) tags = tags + t
+                                    tagInput = ""
+                                }
+                            }) {
+                                Icon(Icons.Default.Add, null, tint = Color.White)
+                            }
+                        }
+                        if (tags.isNotEmpty()) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(top = 6.dp)
+                            ) {
+                                tags.forEach { tag ->
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.White.copy(alpha = 0.12f),
+                                        modifier = Modifier.clickable {
+                                            tags = tags - tag
+                                        }
+                                    ) {
+                                        Text(
+                                            tag,
+                                            fontFamily = LexendFontFamily,
+                                            fontSize = 13.sp,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+                        SectionTitle("DATE")
+                        DateWheelRow(
+                            day = day, month = month, year = year,
+                            onDay = { day = it }, onMonth = { month = it }, onYear = { year = it }
+                        )
+
+                        Spacer(Modifier.height(12.dp))
+                        SectionTitle("PLAYER")
+
+                        // Position
+                        SimpleDropdown(
+                            label = "Position",
+                            value = position,
+                            options = EntityConstants.POSITIONS,
+                            onSelect = {
+                                position = it
+                                playstyle = EntityConstants.playstylesForPosition(it).firstOrNull() ?: ""
+                            },
+                            colors = fieldColors
+                        )
+                        Spacer(Modifier.height(8.dp))
+
+                        // Playstyle
+                        SimpleDropdown(
+                            label = "Playstyle",
+                            value = playstyle.ifBlank {
+                                EntityConstants.playstylesForPosition(position).firstOrNull() ?: ""
+                            },
+                            options = EntityConstants.playstylesForPosition(position),
+                            onSelect = { playstyle = it },
+                            colors = fieldColors
+                        )
+                        Spacer(Modifier.height(8.dp))
+
+                        // Secondary positions (max 6)
+                        FieldLabel("SECONDARY POSITIONS (max 6)")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            EntityConstants.POSITIONS.filter { it != position }.forEach { pos ->
+                                val selected = pos in secondary
                                 Surface(
                                     shape = RoundedCornerShape(16.dp),
-                                    color = Color.White.copy(alpha = 0.12f),
+                                    color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
                                     modifier = Modifier.clickable {
-                                        tags = tags - tag
+                                        secondary = when {
+                                            selected -> secondary - pos
+                                            secondary.size < 6 -> secondary + pos
+                                            else -> secondary
+                                        }
                                     }
                                 ) {
                                     Text(
-                                        tag,
+                                        pos,
                                         fontFamily = LexendFontFamily,
-                                        fontSize = 13.sp,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (selected) Color.Black else Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                     )
                                 }
                             }
                         }
-                    }
 
-                    Spacer(Modifier.height(12.dp))
-                    SectionTitle("DATE")
-                    DateWheelRow(
-                        day = day, month = month, year = year,
-                        onDay = { day = it }, onMonth = { month = it }, onYear = { year = it }
-                    )
+                        Spacer(Modifier.height(8.dp))
+                        SimpleDropdown(
+                            label = "Nationality",
+                            value = nationality,
+                            options = listOf("") + availableNations,
+                            onSelect = { nationality = it },
+                            colors = fieldColors,
+                            allowEmpty = true
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        SimpleDropdown(
+                            label = "Club",
+                            value = club,
+                            options = listOf("") + availableClubs,
+                            onSelect = { club = it },
+                            colors = fieldColors,
+                            allowEmpty = true
+                        )
 
-                    Spacer(Modifier.height(12.dp))
-                    SectionTitle("PLAYER")
-
-                    // Position
-                    SimpleDropdown(
-                        label = "Position",
-                        value = position,
-                        options = EntityConstants.POSITIONS,
-                        onSelect = {
-                            position = it
-                            // reset playstyle when position changes
-                            playstyle = EntityConstants.playstylesForPosition(it).firstOrNull() ?: ""
-                        },
-                        colors = fieldColors
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    // Playstyle
-                    SimpleDropdown(
-                        label = "Playstyle",
-                        value = playstyle.ifBlank {
-                            EntityConstants.playstylesForPosition(position).firstOrNull() ?: ""
-                        },
-                        options = EntityConstants.playstylesForPosition(position),
-                        onSelect = { playstyle = it },
-                        colors = fieldColors
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    // Secondary positions (max 6)
-                    FieldLabel("SECONDARY POSITIONS (max 6)")
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        EntityConstants.POSITIONS.filter { it != position }.forEach { pos ->
-                            val selected = pos in secondary
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                                modifier = Modifier.clickable {
-                                    secondary = when {
-                                        selected -> secondary - pos
-                                        secondary.size < 6 -> secondary + pos
-                                        else -> secondary
-                                    }
-                                }
-                            ) {
-                                Text(
-                                    pos,
-                                    fontFamily = LexendFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = if (selected) Color.Black else Color.White.copy(alpha = 0.85f),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-                    SimpleDropdown(
-                        label = "Nationality",
-                        value = nationality,
-                        options = listOf("") + availableNations,
-                        onSelect = { nationality = it },
-                        colors = fieldColors,
-                        allowEmpty = true
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    SimpleDropdown(
-                        label = "Club",
-                        value = club,
-                        options = listOf("") + availableClubs,
-                        onSelect = { club = it },
-                        colors = fieldColors,
-                        allowEmpty = true
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-                    SectionTitle("SKILLS")
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        EntityConstants.PLAYER_SKILLS.forEach { skill ->
-                            val selected = skill in skills
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = if (selected) Color(0xFF10B981) else Color.White.copy(alpha = 0.08f),
-                                modifier = Modifier.clickable {
-                                    skills = if (selected) skills - skill else skills + skill
-                                }
-                            ) {
-                                Text(
-                                    skill,
-                                    fontFamily = LexendFontFamily,
-                                    fontSize = 12.sp,
-                                    color = if (selected) Color.White else Color.White.copy(alpha = 0.85f),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-                    SectionTitle("STATS (0 – 100)")
-                    Text(
-                        EntityConstants.VALUE_GUIDE,
-                        fontFamily = LexendFontFamily,
-                        fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    val statKeys = EntityConstants.statsForPosition(position)
-                    statKeys.chunked(2).forEach { row ->
-                        Row(
+                        Spacer(Modifier.height(12.dp))
+                        SectionTitle("SKILLS")
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            row.forEach { key ->
-                                DraggableStatField(
-                                    label = key,
-                                    value = statValues[key] ?: 0f,
-                                    onValueChange = { statValues[key] = it },
-                                    onLabelClick = { explainStat = key },
-                                    modifier = Modifier.weight(1f),
-                                    colors = fieldColors
-                                )
+                            EntityConstants.PLAYER_SKILLS.forEach { skill ->
+                                val selected = skill in skills
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (selected) Color(0xFF10B981) else Color.White.copy(alpha = 0.08f),
+                                    modifier = Modifier.clickable {
+                                        skills = if (selected) skills - skill else skills + skill
+                                    }
+                                ) {
+                                    Text(
+                                        skill,
+                                        fontFamily = LexendFontFamily,
+                                        fontSize = 12.sp,
+                                        color = if (selected) Color.White else Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
                             }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
-                        Spacer(Modifier.height(6.dp))
+
+                        Spacer(Modifier.height(12.dp))
+                        SectionTitle("STATS (0 – 100)")
+                        Text(
+                            EntityConstants.VALUE_GUIDE,
+                            fontFamily = LexendFontFamily,
+                            fontSize = 11.sp,
+                            color = Color.White.copy(alpha = 0.5f)
+                        )
+                        Spacer(Modifier.height(8.dp))
+
+                        val statKeys = EntityConstants.statsForPosition(position)
+                        statKeys.chunked(2).forEach { row ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                row.forEach { key ->
+                                    DraggableStatField(
+                                        label = key,
+                                        value = statValues[key] ?: 0f,
+                                        onValueChange = { statValues[key] = it },
+                                        onLabelClick = { explainStat = key },
+                                        modifier = Modifier.weight(1f),
+                                        colors = fieldColors
+                                    )
+                                }
+                                if (row.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                            Spacer(Modifier.height(6.dp))
+                        }
+
+                        // Overall preview
+                        val overall = if (statKeys.isNotEmpty()) {
+                            statKeys.map { statValues[it] ?: 0f }.average().toFloat()
+                        } else 0f
+                        Text(
+                            "Overall: ${overall.roundToInt()}",
+                            fontFamily = LexendFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        Spacer(Modifier.height(24.dp))
                     }
-
-                    // Overall preview
-                    val overall = if (statKeys.isNotEmpty()) {
-                        statKeys.map { statValues[it] ?: 0f }.average().toFloat()
-                    } else 0f
-                    Text(
-                        "Overall: ${overall.roundToInt()}",
-                        fontFamily = LexendFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color(0xFF10B981),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-
-                    Spacer(Modifier.height(24.dp))
-                }
-
-            } // end content Column
+                } // end content Column
 
                 // Fixed bottom action bar — pinned, always visible
                 Surface(
@@ -628,7 +624,8 @@ private fun SimpleDropdown(
     allowEmpty: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
+    // FIX: Moved clickable to the parent Box so it registers even with readOnly TextField
+    Box(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
         OutlinedTextField(
             value = value.ifBlank { if (allowEmpty) "— none —" else "" },
             onValueChange = {},
@@ -642,9 +639,7 @@ private fun SimpleDropdown(
                 )
             },
             colors = colors,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
+            modifier = Modifier.fillMaxWidth()
         )
         androidx.compose.material3.DropdownMenu(
             expanded = expanded,
