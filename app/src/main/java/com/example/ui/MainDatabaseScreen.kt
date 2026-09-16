@@ -324,7 +324,8 @@ fun MainDatabaseScreen(
                                         selectedKeys = if (selectedKeys.contains(key)) selectedKeys - key else selectedKeys + key
                                         if (selectedKeys.isEmpty()) selectionMode = false
                                     } else {
-                                        overviewEntry = entry
+                                        // Open edit dialog with Delete / Cancel / Update
+                                        entryToEdit = entry
                                     }
                                 },
                                 onLongClick = {
@@ -461,66 +462,66 @@ fun MainDatabaseScreen(
                         Icon(Icons.Default.Search, null, modifier = Modifier.size(22.dp))
                     }
                     Spacer(Modifier.width(10.dp))
-                    Box {
-                        if (showFabMenu) {
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 64.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                listOf(
-                                    EntityType.Nation to "Nation",
-                                    EntityType.Club to "Club",
-                                    EntityType.Manager to "Coach"
-                                ).forEach { (type, label) ->
-                                    Surface(
-                                        shape = RoundedCornerShape(20.dp),
-                                        color = Color.White,
-                                        shadowElevation = 6.dp,
-                                        modifier = Modifier.clickable {
-                                            createEntityType = type
-                                            showFabMenu = false
-                                        }
-                                    ) {
-                                        Text(
-                                            label,
-                                            fontFamily = LexendFontFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = Color.Black,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        // Tap = new player; long-press = Club/Coach/Nation menu (stable APIs only)
-                        Surface(
-                            shape = androidx.compose.foundation.shape.CircleShape,
-                            color = Color.White,
-                            shadowElevation = 6.dp,
-                            modifier = Modifier
-                                .size(52.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = { showFabMenu = true },
-                                        onTap = {
-                                            if (showFabMenu) showFabMenu = false
-                                            else isAddingNew = true
-                                        }
-                                    )
-                                }
-                        ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "Add",
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(26.dp)
+                    FloatingActionButton(
+                        onClick = {
+                            if (showFabMenu) showFabMenu = false
+                            else isAddingNew = true
+                        },
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                        modifier = Modifier
+                            .size(52.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = { showFabMenu = true }
                                 )
                             }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(26.dp))
+                    }
+                }
+            }
+        }
+
+
+        // Overlay menu for long-press + (does not move bottom bar)
+        if (showFabMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+                    .clickable { showFabMenu = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    listOf(
+                        EntityType.Nation to "Nation",
+                        EntityType.Club to "Club",
+                        EntityType.Manager to "Coach"
+                    ).forEach { (type, label) ->
+                        Surface(
+                            shape = RoundedCornerShape(22.dp),
+                            color = Color.White,
+                            shadowElevation = 8.dp,
+                            modifier = Modifier.clickable {
+                                createEntityType = type
+                                showFabMenu = false
+                            }
+                        ) {
+                            Text(
+                                label,
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                            )
                         }
                     }
                 }
