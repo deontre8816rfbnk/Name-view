@@ -1,23 +1,14 @@
 package com.example.ui.components
 
 import androidx.compose.ui.draw.clip
-
 import androidx.compose.runtime.remember
-
 import androidx.compose.ui.platform.LocalContext
-
 import androidx.compose.ui.layout.ContentScale
-
 import androidx.compose.ui.graphics.asImageBitmap
-
 import androidx.compose.foundation.layout.size
-
 import androidx.compose.foundation.Image
-
 import android.net.Uri
-
 import android.graphics.BitmapFactory
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -83,17 +74,18 @@ fun OverviewDialog(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
                     .fillMaxHeight(0.82f)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onLongPress = { onRequestEdit() },
-                            onTap = { /* consume so outside tap doesn't fire */ }
-                        )
-                    }
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = { onRequestEdit() },
+                                // Consume tap so it doesn't fall through to the outer dismiss box
+                                onTap = { } 
+                            )
+                        }
                         .padding(20.dp)
                 ) {
                     Text(
