@@ -155,41 +155,6 @@ fun AddEditEntryDialog(
         unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
     )
 
-
-    fun savePlayer() {
-        if (name.isBlank()) return
-        val dateStr = "%02d/%02d/%04d".format(day, month, year)
-        val statsStr = EntityConstants.statsForPosition(position)
-            .joinToString(", ") { k ->
-                "$k:${(statValues[k] ?: 0f).roundToInt()}"
-            }
-        val keys = EntityConstants.statsForPosition(position)
-        val computedOverall = if (keys.isNotEmpty()) {
-            keys.map { statValues[it] ?: 0f }.average().toFloat()
-        } else 0f
-        val extra = mutableMapOf(
-            "Type" to EntityType.Player.name,
-            "Position" to position,
-            "Playstyle" to playstyle,
-            "Date" to dateStr,
-            "Overall" to computedOverall.roundToInt().toString()
-        )
-        if (nationality.isNotBlank()) extra["Nationality"] = nationality
-        if (club.isNotBlank()) extra["Club"] = club
-        if (secondary.isNotEmpty()) extra["SecondaryPositions"] = secondary.joinToString(", ")
-        if (skills.isNotEmpty()) extra["Skills"] = skills.joinToString(", ")
-        onSave(
-            DatabaseEntry(
-                name = name.trim(),
-                id = customId.trim(),
-                description = description.trim(),
-                stats = statsStr,
-                tags = tags,
-                extraFields = extra
-            )
-        )
-    }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -201,11 +166,12 @@ fun AddEditEntryDialog(
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Main scrollable content
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
+                        .fillMaxSize()
+                        .padding(bottom = 80.dp) // Leave strict space for the pinned footer
                 ) {
                     // Header
                     Row(
@@ -475,13 +441,13 @@ fun AddEditEntryDialog(
 
                         Spacer(Modifier.height(24.dp))
                     }
-                } // end scrollable content
+                } // end content Column
 
-                // Action bar: Delete (edit only) | Cancel | Save/Update
+                // Fixed bottom action bar — pinned, always visible
                 Surface(
                     color = Color(0xFF0D0D0D),
                     shadowElevation = 12.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     Row(
                         modifier = Modifier
@@ -560,7 +526,7 @@ fun AddEditEntryDialog(
                         }
                     }
                 }
-            } // main Column
+            } // Box
         }
     }
 
