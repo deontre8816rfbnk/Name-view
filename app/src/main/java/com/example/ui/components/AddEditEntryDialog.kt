@@ -240,52 +240,6 @@ fun AddEditEntryDialog(
                         }
                     }
 
-                    // ALWAYS-VISIBLE actions under title
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF1A1A1A))
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (isEdit && onDelete != null) {
-                            Button(
-                                onClick = onDelete,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF3F1515),
-                                    contentColor = Color(0xFFEF4444)
-                                ),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        Button(
-                            onClick = onDismiss,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF2A2A2A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
-                        }
-                        Button(
-                            onClick = { savePlayer() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                if (isEdit) "Update" else "Save",
-                                fontFamily = LexendFontFamily,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
                     Column(
                         modifier = Modifier
                             .weight(1f)
