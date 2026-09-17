@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -161,18 +162,14 @@ fun AddEditEntryDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .fillMaxHeight(0.95f)
                 .padding(8.dp),
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Main scrollable content
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 80.dp) // Leave strict space for the pinned footer
-                ) {
+            // Pure Column: header + scroll + footer (footer never scrolls away)
+            Column(modifier = Modifier.fillMaxSize()) {
                     // Header
                     Row(
                         modifier = Modifier
@@ -440,19 +437,17 @@ fun AddEditEntryDialog(
                         )
 
                         Spacer(Modifier.height(24.dp))
-                    }
-                } // end content Column
+                    } // scroll content
 
-                // Fixed bottom action bar — pinned, always visible
+                // FOOTER — fixed, not scrollable
                 Surface(
-                    color = Color(0xFF0D0D0D),
-                    shadowElevation = 12.dp,
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                    color = Color(0xFF161616),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 20.dp),
+                            .padding(horizontal = 12.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isEdit && onDelete != null) {
@@ -462,7 +457,7 @@ fun AddEditEntryDialog(
                                     containerColor = Color(0xFF3F1515),
                                     contentColor = Color(0xFFEF4444)
                                 ),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f).height(48.dp)
                             ) {
                                 Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                             }
@@ -473,7 +468,7 @@ fun AddEditEntryDialog(
                                 containerColor = Color(0xFF2A2A2A),
                                 contentColor = Color.White
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(48.dp)
                         ) {
                             Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                         }
@@ -500,7 +495,6 @@ fun AddEditEntryDialog(
                                 if (club.isNotBlank()) extra["Club"] = club
                                 if (secondary.isNotEmpty()) extra["SecondaryPositions"] = secondary.joinToString(", ")
                                 if (skills.isNotEmpty()) extra["Skills"] = skills.joinToString(", ")
-
                                 onSave(
                                     DatabaseEntry(
                                         name = name.trim(),
@@ -516,7 +510,7 @@ fun AddEditEntryDialog(
                                 containerColor = Color.White,
                                 contentColor = Color.Black
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(48.dp)
                         ) {
                             Text(
                                 if (isEdit) "Update" else "Save",
@@ -526,9 +520,9 @@ fun AddEditEntryDialog(
                         }
                     }
                 }
-            } // Box
-        }
-    }
+            } // main Column
+        } // Surface
+    } // Dialog
 
     // Stat explanation popup
     explainStat?.let { stat ->

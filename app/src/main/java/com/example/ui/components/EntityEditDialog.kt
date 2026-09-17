@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -182,16 +183,14 @@ fun EntityEditDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.95f)
+                .padding(8.dp),
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 80.dp) // Strict space for pinned footer
-                ) {
+            Column(modifier = Modifier.fillMaxSize()) {
                     Text(
                         text = if (isEdit) "Edit $titleLabel" else "New $titleLabel",
                         fontFamily = LexendFontFamily,
@@ -409,21 +408,16 @@ fun EntityEditDialog(
                         }
 
                         Spacer(Modifier.height(24.dp))
-                    }
-                } // end content Column
+                    } // scroll
 
-                // Fixed bottom footer — pinned and unscrollable
                 Surface(
-                    color = Color(0xFF0D0D0D),
-                    shadowElevation = 12.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
+                    color = Color(0xFF161616),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 20.dp),
+                            .padding(horizontal = 12.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isEdit && onDelete != null) {
@@ -433,7 +427,7 @@ fun EntityEditDialog(
                                     containerColor = Color(0xFF3F1515),
                                     contentColor = Color(0xFFEF4444)
                                 ),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f).height(48.dp)
                             ) {
                                 Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                             }
@@ -444,7 +438,7 @@ fun EntityEditDialog(
                                 containerColor = Color(0xFF2A2A2A),
                                 contentColor = Color.White
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(48.dp)
                         ) {
                             Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
                         }
@@ -457,7 +451,6 @@ fun EntityEditDialog(
                                     "Date" to dateStr
                                 )
                                 var statsStr = ""
-
                                 when (entityType) {
                                     EntityType.Manager -> {
                                         if (nationality.isNotBlank()) extra["Nationality"] = nationality
@@ -480,7 +473,6 @@ fun EntityEditDialog(
                                     }
                                     else -> {}
                                 }
-
                                 onSave(
                                     DatabaseEntry(
                                         name = name.trim(),
@@ -496,7 +488,7 @@ fun EntityEditDialog(
                                 containerColor = Color.White,
                                 contentColor = Color.Black
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(48.dp)
                         ) {
                             Text(
                                 if (isEdit) "Update" else "Save",
@@ -506,9 +498,9 @@ fun EntityEditDialog(
                         }
                     }
                 }
-            } // Box
-        }
-    }
+            } // main Column
+        } // Surface
+    } // Dialog
 
     if (showTagPicker) {
         Dialog(onDismissRequest = { showTagPicker = false }) {
