@@ -453,33 +453,36 @@ fun MainDatabaseScreen(
                     }
                     Spacer(Modifier.width(10.dp))
                     
-                    // + same shape as Search; onClick = instant open (no gesture delay)
-                    FloatingActionButton(
-                        onClick = {
-                            if (showFabMenu) {
-                                showFabMenu = false
-                            } else {
-                                isAddingNew = true
-                            }
-                        },
+                    // Rounded square (like Search). Tap = player, long-press = Nation/Club/Coach
+                    Surface(
                         shape = RoundedCornerShape(14.dp),
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
-                        elevation = FloatingActionButtonDefaults.elevation(4.dp),
+                        color = Color.White,
+                        shadowElevation = 4.dp,
                         modifier = Modifier
                             .size(48.dp)
                             .pointerInput(Unit) {
-                                // long-press only — does not delay the short tap above
                                 detectTapGestures(
-                                    onLongPress = { showFabMenu = true }
+                                    onTap = {
+                                        if (showFabMenu) showFabMenu = false
+                                        else isAddingNew = true
+                                    },
+                                    onLongPress = {
+                                        showFabMenu = true
+                                    }
                                 )
                             }
                     ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add",
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Add",
+                                tint = Color.Black,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
             }
