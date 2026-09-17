@@ -443,6 +443,7 @@ fun MainDatabaseScreen(
                             focusRequester.requestFocus()
                             keyboardController?.show()
                         },
+                        shape = RoundedCornerShape(14.dp),
                         containerColor = Color(0xFF1C1C1C),
                         contentColor = Color.White,
                         elevation = FloatingActionButtonDefaults.elevation(4.dp),
@@ -452,34 +453,33 @@ fun MainDatabaseScreen(
                     }
                     Spacer(Modifier.width(10.dp))
                     
-                    // + button: tap = add player, long-press = Nation/Club/Coach menu
-                    Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = Color.White,
-                        shadowElevation = 6.dp,
+                    // + same shape as Search; onClick = instant open (no gesture delay)
+                    FloatingActionButton(
+                        onClick = {
+                            if (showFabMenu) {
+                                showFabMenu = false
+                            } else {
+                                isAddingNew = true
+                            }
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        elevation = FloatingActionButtonDefaults.elevation(4.dp),
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(48.dp)
                             .pointerInput(Unit) {
+                                // long-press only — does not delay the short tap above
                                 detectTapGestures(
-                                    onTap = {
-                                        if (showFabMenu) showFabMenu = false
-                                        else isAddingNew = true
-                                    },
                                     onLongPress = { showFabMenu = true }
                                 )
                             }
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "Add",
-                                tint = Color.Black,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add",
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 }
             }
