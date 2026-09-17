@@ -155,6 +155,41 @@ fun AddEditEntryDialog(
         unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
     )
 
+
+    fun savePlayer() {
+        if (name.isBlank()) return
+        val dateStr = "%02d/%02d/%04d".format(day, month, year)
+        val statsStr = EntityConstants.statsForPosition(position)
+            .joinToString(", ") { k ->
+                "$k:${(statValues[k] ?: 0f).roundToInt()}"
+            }
+        val keys = EntityConstants.statsForPosition(position)
+        val computedOverall = if (keys.isNotEmpty()) {
+            keys.map { statValues[it] ?: 0f }.average().toFloat()
+        } else 0f
+        val extra = mutableMapOf(
+            "Type" to EntityType.Player.name,
+            "Position" to position,
+            "Playstyle" to playstyle,
+            "Date" to dateStr,
+            "Overall" to computedOverall.roundToInt().toString()
+        )
+        if (nationality.isNotBlank()) extra["Nationality"] = nationality
+        if (club.isNotBlank()) extra["Club"] = club
+        if (secondary.isNotEmpty()) extra["SecondaryPositions"] = secondary.joinToString(", ")
+        if (skills.isNotEmpty()) extra["Skills"] = skills.joinToString(", ")
+        onSave(
+            DatabaseEntry(
+                name = name.trim(),
+                id = customId.trim(),
+                description = description.trim(),
+                stats = statsStr,
+                tags = tags,
+                extraFields = extra
+            )
+        )
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -202,6 +237,52 @@ fun AddEditEntryDialog(
                             IconButton(onClick = { nameEditable = true }) {
                                 Icon(Icons.Default.Edit, null, tint = Color.White.copy(alpha = 0.7f))
                             }
+                        }
+                    }
+
+                    // ALWAYS-VISIBLE actions under title
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF1A1A1A))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (isEdit && onDelete != null) {
+                            Button(
+                                onClick = onDelete,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF3F1515),
+                                    contentColor = Color(0xFFEF4444)
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Button(
+                            onClick = onDismiss,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2A2A2A),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { savePlayer() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                if (isEdit) "Update" else "Save",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 

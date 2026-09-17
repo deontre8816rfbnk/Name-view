@@ -177,6 +177,53 @@ fun EntityEditDialog(
         unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
     )
 
+
+    fun saveEntity() {
+        if (name.isBlank()) return
+        val dateStr = "%02d/%02d/%04d".format(day, month, year)
+        val extra = mutableMapOf(
+            "Type" to entityType.name,
+            "Date" to dateStr
+        )
+        var statsStr = ""
+        when (entityType) {
+            EntityType.Manager -> {
+                if (nationality.isNotBlank()) extra["Nationality"] = nationality
+                if (managerPlaystyles.isNotEmpty()) extra["Playstyles"] = managerPlaystyles.joinToString(", ")
+                if (managerSkills.isNotEmpty()) extra["Skills"] = managerSkills.joinToString(", ")
+                val keys = listOf(
+                    "Tactical Adaptability", "Touchline Motivation", "Man Management",
+                    "Youth Development", "IQ"
+                )
+                statsStr = keys.joinToString(", ") { k ->
+                    "$k:${(managerStatValues[k] ?: 0f).roundToInt()}"
+                }
+            }
+            EntityType.Club -> {
+                if (teamStrength.isNotBlank()) extra["TeamStrength"] = teamStrength
+                extra["ClubStarRating"] = clubStarRating
+                if (teamPlaystyle.isNotBlank()) extra["TeamPlaystyleProficiency"] = teamPlaystyle
+                extra["CollectiveCondition"] = collectiveCondition
+                if (imagePath.isNotBlank()) extra["LogoPath"] = imagePath
+            }
+            EntityType.Nation -> {
+                if (playerCountNote.isNotBlank()) extra["PlayerCount"] = playerCountNote
+                if (imagePath.isNotBlank()) extra["FlagPath"] = imagePath
+            }
+            else -> {}
+        }
+        onSave(
+            DatabaseEntry(
+                name = name.trim(),
+                id = customId.trim(),
+                description = description.trim(),
+                stats = statsStr,
+                tags = tags,
+                extraFields = extra
+            )
+        )
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -200,6 +247,52 @@ fun EntityEditDialog(
                         color = Color.White,
                         modifier = Modifier.padding(16.dp)
                     )
+
+                    // ALWAYS-VISIBLE actions under title
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF1A1A1A))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (isEdit && onDelete != null) {
+                            Button(
+                                onClick = onDelete,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF3F1515),
+                                    contentColor = Color(0xFFEF4444)
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Delete", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Button(
+                            onClick = onDismiss,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2A2A2A),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel", fontFamily = LexendFontFamily, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { saveEntity() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                if (isEdit) "Update" else "Save",
+                                fontFamily = LexendFontFamily,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
 
                     Column(
                         modifier = Modifier
