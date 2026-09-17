@@ -177,7 +177,6 @@ fun EntityEditDialog(
         unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
     )
 
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -187,11 +186,11 @@ fun EntityEditDialog(
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
+                        .fillMaxSize()
+                        .padding(bottom = 80.dp) // Strict space for pinned footer
                 ) {
                     Text(
                         text = if (isEdit) "Edit $titleLabel" else "New $titleLabel",
@@ -413,11 +412,13 @@ fun EntityEditDialog(
                     }
                 } // end content Column
 
-                // Fixed bottom footer — not part of scroll
+                // Fixed bottom footer — pinned and unscrollable
                 Surface(
                     color = Color(0xFF0D0D0D),
                     shadowElevation = 12.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
                 ) {
                     Row(
                         modifier = Modifier
@@ -505,7 +506,7 @@ fun EntityEditDialog(
                         }
                     }
                 }
-            } // main Column
+            } // Box
         }
     }
 
