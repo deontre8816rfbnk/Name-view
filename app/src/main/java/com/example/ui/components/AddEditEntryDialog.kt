@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -83,7 +84,13 @@ fun AddEditEntryDialog(
     var showTagPicker by remember { mutableStateOf(false) }
 
     var position by remember { mutableStateOf(initialEntry?.position ?: "CF") }
-    var playstyle by remember { mutableStateOf(initialEntry?.playstyle ?: "") }
+    var playstyle by remember {
+        mutableStateOf(
+            initialEntry?.playstyle?.takeIf { it.isNotBlank() }
+                ?: EntityConstants.playstylesForPosition(initialEntry?.position ?: "CF").firstOrNull()
+                ?: ""
+        )
+    }
     var nationality by remember { mutableStateOf(initialEntry?.nationality ?: "") }
     var club by remember { mutableStateOf(initialEntry?.club ?: "") }
     var secondary by remember {
@@ -162,11 +169,11 @@ fun AddEditEntryDialog(
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF121212)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 76.dp) // Leave space for pinned footer
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
                     // Header
                     Row(
@@ -436,13 +443,13 @@ fun AddEditEntryDialog(
 
                         Spacer(Modifier.height(24.dp))
                     }
-                } // end content Column
+                } // end scrollable content
 
-                // Fixed bottom action bar — pinned, always visible
+                // Action bar: Delete (edit only) | Cancel | Save/Update
                 Surface(
                     color = Color(0xFF0D0D0D),
                     shadowElevation = 12.dp,
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
@@ -521,7 +528,7 @@ fun AddEditEntryDialog(
                         }
                     }
                 }
-            } // Box
+            } // main Column
         }
     }
 
@@ -614,6 +621,7 @@ fun AddEditEntryDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SimpleDropdown(
     label: String,
@@ -624,24 +632,28 @@ private fun SimpleDropdown(
     allowEmpty: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // FIX: Moved clickable to the parent Box so it registers even with readOnly TextField
-    Box(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+    val display = when {
+        value.isNotBlank() -> value
+        allowEmpty -> "— none —"
+        options.isNotEmpty() -> options.first()
+        else -> ""
+    }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
         OutlinedTextField(
-            value = value.ifBlank { if (allowEmpty) "— none —" else "" },
+            value = display,
             onValueChange = {},
             readOnly = true,
             label = { Text(label, fontFamily = LexendFontFamily) },
-            trailingIcon = {
-                Icon(
-                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    null,
-                    tint = Color.White.copy(alpha = 0.6f)
-                )
-            },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = colors,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
         )
-        androidx.compose.material3.DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
