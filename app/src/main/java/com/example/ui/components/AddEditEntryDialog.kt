@@ -29,9 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -621,7 +618,6 @@ fun AddEditEntryDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SimpleDropdown(
     label: String,
@@ -638,22 +634,30 @@ private fun SimpleDropdown(
         options.isNotEmpty() -> options.first()
         else -> ""
     }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
+    // Stable dropdown: no menuAnchor / ExposedDropdownMenuBox (avoids API mismatches)
+    Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = display,
             onValueChange = {},
             readOnly = true,
             label = { Text(label, fontFamily = LexendFontFamily) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = {
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.6f)
+                )
+            },
             colors = colors,
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
+            modifier = Modifier.fillMaxWidth()
         )
-        ExposedDropdownMenu(
+        // Full-field tap target (TextField alone often blocks DropdownMenu)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { expanded = true }
+        )
+        androidx.compose.material3.DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
